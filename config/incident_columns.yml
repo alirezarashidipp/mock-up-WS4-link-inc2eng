@@ -1,0 +1,123 @@
+definitions:
+  incident_id: Unique identifier of the incident, preserved locally to associate its original source data with its classification
+    result.
+  incident_description: A detailed incident narrative describing symptoms, timing, impact, and investigation context.
+  configuration_item_name: The application, service, or configuration item associated with the incident.
+  incident_assignment_group_name: The support group assigned to the incident, which does not by itself establish causal responsibility.
+  incident_business_impact: Recorded effects of the incident on business services, transactions, customers, or regions.
+  incident_category: The high-level incident category recorded in the source system.
+  incident_cause_details: Recorded details about suspected or established incident causes.
+  incident_caused_change_order_id: The identifier of a change order linked in the source system as a possible or recorded
+    cause of the incident.
+  incident_close_code: The code or label used to categorize how the incident was closed.
+  incident_closed_datetime: The recorded date and time when the incident was closed; the time zone is not specified here.
+  incident_created_datetime: The recorded date and time when the incident record was created; the time zone is not specified
+    here.
+  incident_disruption_flag: The recorded flag indicating whether the incident is associated with a disruption.
+  incident_disruption_name: The name or label of the disruption associated with the incident.
+  incident_duration_minutes: The recorded incident duration in minutes, preserved as source text.
+  incident_impacted_business_service_name: The business service recorded as affected by the incident.
+  incident_impacted_location_name: The location or locations recorded as affected by the incident.
+  incident_last_modified_datetime: The recorded date and time of the incident record's latest update, which does not by itself
+    establish when a cause was confirmed.
+  incident_open_datetime: The recorded date and time when the incident was opened; the time zone is not specified here.
+  incident_parent_id: The identifier of the parent incident linked to this incident.
+  incident_resolution_description: The recorded description or label of the incident resolution, which does not by itself
+    establish who caused the incident.
+  incident_resolution_notes: Free-text incident resolution notes that may also describe contributing causes.
+  incident_severity_code: The severity code recorded for the incident; its scale is not defined here.
+  incident_short_description: A short summary of the reported incident and its main symptoms.
+  incident_status: The incident's recorded lifecycle status.
+  incident_subcategory: The more specific incident category recorded beneath the main category.
+  major_incident_findings: Recorded findings from the major-incident investigation.
+  major_incident_summary: A narrative summary of the major incident, including key events, symptoms, and impact.
+  problem_id: The identifier of the problem record associated with the incident.
+  problem_summary: A short summary of the problem linked to the incident.
+  problem_close_datetime: The recorded date and time when the problem record was closed; the time zone is not specified here.
+  problem_close_notes: Problem closure notes that may summarize the investigation, root cause, and conclusions.
+  problem_configuration_item_name: The application, service, or configuration item associated with the problem record.
+  problem_description: A description of the underlying problem, its symptoms, and investigation context.
+  problem_last_modified_datetime: The recorded date and time of the problem record's latest update, which does not by itself
+    establish when a cause was confirmed.
+  problem_open_datetime: The recorded date and time when the problem record was opened; the time zone is not specified here.
+  problem_related_incident_id: The identifier of an incident linked from the problem record.
+  problem_resolution_description: A description or label of the resolution recorded for the underlying problem.
+  problem_resolution_details: Detailed resolution information recorded for the problem, which may describe proposed or completed
+    actions.
+  problem_risk_details: Recorded information about risks associated with the problem or its resolution.
+  problem_root_cause: The root-cause explanation recorded on the problem record, including any stated mechanism or contributing
+    conditions.
+  problem_ticket_status: The lifecycle status recorded for the linked problem ticket.
+  problem_workaround: A temporary workaround recorded for the problem; the source text determines whether it was proposed
+    or applied.
+  problem_cause_notes: Investigation notes recorded on the problem about causal findings, suspected causes, or supporting
+    observations.
+  root_cause_id: The identifier of the root-cause investigation task associated with the problem.
+  root_cause_business_service_name: The business service associated with the root-cause investigation task.
+  root_cause_first_reported_by_incident_id: The incident identifier recorded as the first report associated with the root-cause
+    investigation task.
+  root_cause_impact_code: The impact code recorded on the root-cause investigation task; its scale is not defined here.
+  root_cause_priority_code: The priority code or label recorded on the root-cause investigation task; its scale is not defined
+    here.
+  root_cause_status_code: The recorded lifecycle status code or label of the root-cause investigation task.
+  root_cause_active_flag: The recorded flag indicating whether the root-cause investigation task is active.
+  root_cause_technology_owning_org_l2_name: The level-two technology organization recorded as owning the root-cause task,
+    without implying causal responsibility.
+  root_cause_assignment_group_name: The support group assigned to the root-cause task, which does not by itself establish
+    causal responsibility.
+  root_cause_category: The category recorded for the root-cause investigation task.
+  root_cause_code: The recorded root-cause category or label, interpreted alongside the supporting narrative rather than as
+    proof of responsibility.
+  root_cause_notes: The explanation of the root cause, contributing conditions, and causal mechanism recorded on the root-cause
+    investigation task.
+  root_cause_close_code: The code or label describing the closure outcome of the root-cause investigation task.
+  root_cause_close_notes: Closure notes for the root-cause task that may include findings, resolution details, and preventive
+    recommendations.
+  root_cause_configuration_item_name: The application, service, or configuration item associated with the root-cause investigation
+    task.
+  root_cause_description: The detailed description of the issue, investigation, and work covered by the root-cause task.
+  root_cause_fix_notes: Recorded fix instructions, corrective actions, or preventive recommendations for the root-cause task;
+    the text determines whether actions were proposed or completed.
+  root_cause_read_across_action_flag: The recorded flag for read-across actions concerning similar services or systems.
+  root_cause_read_across_details: Recorded details about applying root-cause findings or corrective actions to similar services
+    or systems.
+  root_cause_short_description: A short summary of the root-cause investigation task and the issue it addresses.
+  root_cause_type: The type of task recorded for the root-cause investigation.
+  unlisted_supplier_name: A supplier name recorded outside the listed supplier selection; its presence alone does not establish
+    accountable supplier identity.
+  supplier_name: The supplier name recorded in the source; its presence alone does not establish causal responsibility or
+    the identity of the accountable supplier.
+  root_cause_urgency_code: The urgency code or label recorded on the root-cause investigation task; its scale is not defined
+    here.
+  incident_additional_comments: Additional comments recorded for the incident, including context, communications, or follow-up
+    information.
+  incident_comments_and_work_notes: Combined comments and work notes recorded for the incident, potentially including communications,
+    operational updates, and investigation observations.
+  incident_work_notes: Work-log notes recorded for the incident, potentially including operational updates, investigation
+    observations, and impact details.
+  problem_comments_and_work_notes: Combined comments and work notes recorded for the problem, potentially including investigation
+    updates, communications, and progress details.
+  problem_task_work_notes: Work notes recorded for a problem task, potentially including investigation observations, actions,
+    and progress.
+  problem_task_work_notes_list: A collection of work notes associated with the problem task, preserved in its source text
+    format.
+  euc_load_date: The data-load date or timestamp recorded in the source extract; it does not by itself date the incident,
+    causal findings, or restoration.
+  class_citations: Source-labeled excerpts supporting or challenging attribution of the incident failure.
+  class_strength: Strength of evidence identifying the party that caused the failure, independent of incident severity.
+  class_consistency: Agreement of distinct accounts relevant to choosing the class; null if not comparable.
+  class_rationale: Two to four concise sentences explaining attribution, counterevidence, and unresolved limits.
+  class: Party whose action, omission, or supplied defect caused the incident failure; UNCERTAIN when unresolved.
+  class_confidence: Confidence in the selected class, not a calibrated probability; HIGH UNCERTAIN is valid.
+  supplier_name_citations: Source-labeled naming evidence or conflicts; [] if unavailable for SUPPLIER, otherwise null.
+  supplier_name_strength: Evidence for identifying the accountable supplier by name; null for other classes.
+  supplier_name_consistency: Agreement of distinct accounts about the accountable supplier identity; null if not comparable.
+  supplier_name_rationale: One or two concise sentences explaining the supplier name, naming conflict, or Unknown.
+  classified_supplier_name: Accountable supplier name exactly as recorded, without shortening, expansion, or normalization;
+    Unknown if unresolved; null for other classes.
+  supplier_name_confidence: Confidence in the selected supplier name; null for Unknown or non-SUPPLIER classes.
+  recorded_cause: Recorded cause and contributing conditions in as many concise sentences as needed; null if unresolved.
+  hsbc_responsible_function: Accountable HSBC function; null for other classes.
+  supplier_product_or_service: Recorded service(s) that went down, for every class; Unknown if not established.
+  supplier_additional_info: Additional recorded supplier facts; null when absent or not SUPPLIER.
+  incident_country: Recorded incident countries in English; separate multiple countries with semicolons.

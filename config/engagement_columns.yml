@@ -1,0 +1,22 @@
+definitions:
+  ENG ID: Identifier of the engagement associated with this supplier record.
+  SUPPLIER_ALIAS_NAME: Alias recorded for the supplier.
+  SUPPLIER_ALTERNATE_NAME: Alternative business name for the supplier.
+  SUPPLIER_TYPE_NAME: Supplier type recorded in the source system.
+  SUPPLIER_REGISTERED_ADDRESS: Registered address of the supplier.
+  SUPPLIER_STATE_NAME: State or region recorded for the supplier.
+  SUPPLIER_NAME: Supplier name as stored in the source system, potentially including an identifier.
+  SUPPLIER_ID_TEXT: Source supplier identifier represented as text.
+  SUPPLIER_CREATION_DATE: Date the supplier record was created.
+  SUPPLIER_STATUS_NAME: Status of the supplier record.
+  SUPPLIER_SOURCE_SYSTEM_NAME: System that supplied the record.
+  SUPPLIER_NORMALISED_BUSINESS_NAME: Standardised business name in the source record.
+  SUPPLIER_KEY_TEXT: Source key for the supplier record.
+  SUPPLIER_DNB_MATCHED_BUSINESS_NAME: Business name matched through Dun & Bradstreet.
+  SUPPLIER_APS_FUSION_SUPPLIER_NUMBERS: Supplier numbers associated with APS Fusion.
+  SOURCE_SUPPLIER_CATEGORY_NAME: Supplier category assigned by the source.
+  SUPPLIER_REGISTERED_COUNTRY_TERRITORY_NAME: Registered country or territory of the supplier.
+  SUPPLIER_DESC: Description recorded for the supplier.
+  SUPPLIER_TRADING_NAME: Name under which the supplier trades.
+  SUPPLIER_REMEDIATION_STATUS_NAME: Remediation status recorded for the supplier.
+  REPORT_DATE: Date associated with the source report.
