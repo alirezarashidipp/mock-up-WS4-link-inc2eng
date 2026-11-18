@@ -1,28 +1,6 @@
 import csv
 
-import yaml
 from openpyxl import load_workbook
-
-from .match_rows import EXACT_COLUMNS
-
-
-def read_incidents(input_dir):
-    path = input_dir / "CLASSIFIED_INCIDENTS.csv"
-    return read_table(path, ["class", "classified_supplier_name"])
-
-
-def read_suppliers(input_dir):
-    csv_file = input_dir / "RAW_SPS_SUPPLIER_DETAIL.csv"
-    excel_file = input_dir / "RAW_SPS_SUPPLIER_DETAIL.xlsx"
-    files = [path for path in (csv_file, excel_file) if path.is_file()]
-    if len(files) != 1:
-        raise ValueError(f"Provide one RAW_SPS_SUPPLIER_DETAIL.csv or .xlsx in {input_dir}.")
-    return read_table(files[0], ["ENG ID", *EXACT_COLUMNS])
-
-
-def read_aliases(path):
-    with path.open(encoding="utf-8-sig") as stream:
-        return yaml.safe_load(stream) or {}
 
 
 def read_table(path, required_columns):
