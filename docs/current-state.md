@@ -27,17 +27,17 @@ Only `SUPPLIER` incidents with a usable `classified_supplier_name` enter matchin
 
 The incident cleaner lowercases the text and collapses whitespace. Whole-name YAML replacements apply after cleaning. For example, the cleaned incident name `gcp` maps to `google cloud platform`. An incident whose name becomes empty produces no candidates.
 
-Engagement names use lowercase text with all whitespace removed for comparison. Punctuation, legal suffixes and words such as `the` remain part of the engagement name. The incident search name is also compared without whitespace. For example, incident `PingIdentity` matches engagement `Ping Identity` exactly. The normalized field can have the older spelling `THIRD_PARTY_NORMALISED_NAME`. If both spellings exist, the finder uses `THIRD_PARTY_NORMALIZED_NAME` and preserves all source fields in the workbook.
+Engagement names use lowercase text with all whitespace removed for comparison. Punctuation, legal suffixes and words such as `the` remain part of the engagement name. The incident search name is also compared without whitespace. For example, incident `PingIdentity` matches engagement `Ping Identity` exactly.
 
 | Check order for one engagement | First field | Second field | Output label |
 | --- | --- | --- | --- |
-| Full equality | `THIRD_PARTY_NAME` | Normalized field | `EXACT` |
-| Incident name occurs literally anywhere in the engagement name | Normalized field | `THIRD_PARTY_NAME` | `PARTIAL` |
-| Fuzzy comparison | Normalized field | `THIRD_PARTY_NAME` | `PARTIAL` |
+| Full equality | `THIRD_PARTY_NAME` | `THIRD_PARTY_NORMALISED_NAME` | `EXACT` |
+| Incident name occurs literally anywhere in the engagement name | `THIRD_PARTY_NORMALISED_NAME` | `THIRD_PARTY_NAME` | `PARTIAL` |
+| Fuzzy comparison | `THIRD_PARTY_NORMALISED_NAME` | `THIRD_PARTY_NAME` | `PARTIAL` |
 
 Fuzzy comparisons use the `fuzzy-match` library and normalized Levenshtein similarity. The compact incident name must contain at least five characters. A score of at least 0.72 against a contiguous sequence of engagement-name words qualifies as a partial match. Literal substring checks apply even to shorter names, so `BT` can match `DEBT`. The first successful check produces one row for that incident and engagement. Different engagements can produce both exact and partial candidates for one incident.
 
 `data/output/engagement_candidates.xlsx` contains both original records followed by `standardised_supplier_name`, `matched_supplier_column`, `match_type` and `found_name_in_source`. The last field copies the full source cell selected by the matcher, preserving its casing, punctuation and spacing. When a supplier header overlaps an incident header, the supplier header gets an `ENG.` prefix. Each run replaces the previous workbook. The INC and ENG dictionaries in `config/` document the input fields. ENG definitions are provisional descriptions based on the supplied headers.
 
 Stage two (LLM engagement selection) is pending. The existing LLM connection module is independent of this stage.
-See [the 12 matching scenarios](scenarios/matching.md) for worked inputs and expected workbook rows.
+See [the 12 matching scenarios](scenarios/matching.html) for worked inputs and expected workbook rows.

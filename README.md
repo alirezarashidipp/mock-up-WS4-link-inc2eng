@@ -5,7 +5,7 @@ This Python demo takes incidents already classified as supplier-caused and finds
 ## Run the finder
 
 1. Put `CLASSIFIED_INCIDENTS.csv` in `data/input/`. It must contain the headers `class` and `classified_supplier_name`.
-2. In the same folder, supply either `ENG_ALL.csv` or `ENG_ALL.xlsx`. The required fields are `ENGAGEMENT_ID`, `THIRD_PARTY_NAME` and `THIRD_PARTY_NORMALIZED_NAME`. The older spelling `THIRD_PARTY_NORMALISED_NAME` is also accepted. If both spellings exist, the finder searches the Z spelling. Other engagement fields are carried into the output.
+2. In the same folder, supply either `ENG_ALL.csv` or `ENG_ALL.xlsx`. The required fields are `ENGAGEMENT_ID`, `THIRD_PARTY_NAME` and `THIRD_PARTY_NORMALISED_NAME`. Other engagement fields are carried into the output.
 3. Use UTF-8, comma-separated CSV files. The incident file has headers in the first row. For `ENG_ALL`, field names can run across the first row (one engagement per row) or down the first column (one engagement per column). For Excel, use the active worksheet.
 
 From the project root on Windows, run:

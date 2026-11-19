@@ -25,7 +25,7 @@ def main(input_dir=INPUT, output_file=OUTPUT):
     incidents = replace_incident_names(incidents, replacements)
 
     supplier_headers, suppliers = read_suppliers(input_dir)
-    suppliers = clean_suppliers(suppliers, supplier_headers)
+    suppliers = clean_suppliers(suppliers)
 
     candidates = find_candidates(incidents, suppliers)
     save_candidates(output_file, incident_headers, supplier_headers, candidates)

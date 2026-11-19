@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Stage-one matching scenarios</title>
+  <style>
+    body {
+      margin: 0;
+      padding: clamp(1rem, 4vw, 3rem);
+      color: #182b37;
+      background: #fafbf9;
+      font: 1rem/1.5 "Source Sans 3", sans-serif;
+    }
+    main { max-width: 90rem; margin: auto; }
+    h1 { margin: 0 0 1rem; line-height: 1.2; }
+    .table-container { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; background: white; }
+    caption { padding: 0 0 1rem; text-align: left; }
+    th, td { padding: .65rem .8rem; border: 1px solid #d1d9d9; text-align: left; vertical-align: top; }
+    thead th { color: white; background: #224753; white-space: nowrap; }
+    tbody tr:nth-child(even) { background: #f3f7f6; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Stage-one matching scenarios</h1>
+    <div class="table-container">
+      <table>
+        <caption>Reference field order for paired names: <strong>Name</strong> (<code>THIRD_PARTY_NAME</code>), then <strong>Normalized name</strong> (<code>THIRD_PARTY_NORMALISED_NAME</code>).</caption>
+        <thead>
+          <tr>
+            <th scope="col">Scenario</th>
+            <th scope="col">Input raw</th>
+            <th scope="col">Input normalized</th>
+            <th scope="col">Reference raw</th>
+            <th scope="col">Reference normalized</th>
+            <th scope="col">Excel result</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">1. Case and spacing</th>
+            <td>PINGidentity</td>
+            <td>pingidentity</td>
+            <td>Ping Identity</td>
+            <td>pingidentity</td>
+            <td><code>EXACT</code> on Name</td>
+          </tr>
+          <tr>
+            <th scope="row">2. Punctuation and suffix</th>
+            <td>The North-Star (Solutions); PLC</td>
+            <td>northstar</td>
+            <td>North Star</td>
+            <td>northstar</td>
+            <td><code>EXACT</code> on Name</td>
+          </tr>
+          <tr>
+            <th scope="row">3. YAML alias</th>
+            <td>GCP</td>
+            <td>googlecloudplatform</td>
+            <td>Google Cloud Platform</td>
+            <td>googlecloudplatform</td>
+            <td><code>EXACT</code> on Name</td>
+          </tr>
+          <tr>
+            <th scope="row">4. Both fields equal the input</th>
+            <td>Acme</td>
+            <td>acme</td>
+            <td>ACME / Acme</td>
+            <td>acme / acme</td>
+            <td><code>EXACT</code> on Name wins</td>
+          </tr>
+          <tr>
+            <th scope="row">5. Exact match in the second field</th>
+            <td>Orion</td>
+            <td>orion</td>
+            <td>Orion UK / ORION</td>
+            <td>orionuk / orion</td>
+            <td><code>EXACT</code> on Normalized name</td>
+          </tr>
+          <tr>
+            <th scope="row">6. Both fields contain the input</th>
+            <td>Microsoft</td>
+            <td>microsoft</td>
+            <td>Microsoft UK Ltd / MICROSOFT EMEA</td>
+            <td>microsoftukltd / microsoftemea</td>
+            <td><code>PARTIAL</code> on Normalized name wins</td>
+          </tr>
+          <tr>
+            <th scope="row">7. Only Name contains the input</th>
+            <td>Apex</td>
+            <td>apex</td>
+            <td>Apex Taiwan Ltd</td>
+            <td>apextaiwanltd</td>
+            <td><code>PARTIAL</code> on Name</td>
+          </tr>
+          <tr>
+            <th scope="row">8. Typo</th>
+            <td>Microsfot</td>
+            <td>microsfot</td>
+            <td>Microsoft Ltd</td>
+            <td>microsoftltd</td>
+            <td><code>PARTIAL</code> on Normalized name. Fuzzy score against <code>microsoft</code> is 0.78.</td>
+          </tr>
+          <tr>
+            <th scope="row">9. Short name inside another word</th>
+            <td>BT</td>
+            <td>bt</td>
+            <td>DEBT</td>
+            <td>debt</td>
+            <td><code>PARTIAL</code> on Normalized name. Possible false positive.</td>
+          </tr>
+          <tr>
+            <th scope="row">10. Incident class is HSBC</th>
+            <td>Acme</td>
+            <td>Skipped</td>
+            <td>Acme</td>
+            <td>acme</td>
+            <td>Zero rows. Class filter excludes the incident.</td>
+          </tr>
+          <tr>
+            <th scope="row">11. Short name with a typo</th>
+            <td>IBM</td>
+            <td>ibm</td>
+            <td>IBN</td>
+            <td>ibn</td>
+            <td>Zero rows. Fuzzy matching requires at least five characters.</td>
+          </tr>
+          <tr>
+            <th scope="row">12. Two engagements</th>
+            <td>Acme</td>
+            <td>acme</td>
+            <td>ENG-1: Acme / ENG-2: Acme UK Limited</td>
+            <td>acme / acmeuklimited</td>
+            <td>Two rows: ENG-1 <code>EXACT</code>, ENG-2 <code>PARTIAL</code>, both on Name.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+</body>
+</html>

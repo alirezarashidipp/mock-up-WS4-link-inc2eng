@@ -5,8 +5,7 @@ definitions:
   THIRD_PARTY_ID: Identifier assigned to the third party in the engagement record.
   COUPA_THIRD_PARTY_ID: Identifier of the third party in Coupa.
   THIRD_PARTY_NAME: Third-party name recorded for the engagement.
-  # ENG_ALL also accepts THIRD_PARTY_NORMALISED_NAME as the source header.
-  THIRD_PARTY_NORMALIZED_NAME: Standardised name of the third party.
+  THIRD_PARTY_NORMALISED_NAME: Standardised name of the third party.
   THIRD_PARTY_TYPE_NAME: Type of third party recorded for the engagement.
   THIRD_PARTY_STATUS_NAME: Status of the third party.
   SERVICE_CATEGORY_L1_NAME: Name of the level-one service category.
