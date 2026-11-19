@@ -1,6 +1,6 @@
-# WS4 incident-to-engagement candidate finder
+# WS4 incident-to-engagement linking
 
-This Python demo finds engagement records for supplier-caused incidents. Stage one writes the name matches to Excel. Stage two sends each incident and its candidate engagements to the configured LLM and writes a separate decision workbook.
+This demo starts with an HSBC incident already attributed to a named supplier. One supplier can provide several services under different engagement IDs. Finding retrieves the supplier's candidate engagements. Linking compares the affected service in the incident record with the work described by each engagement.
 
 ## Run the finder
 
@@ -37,8 +37,6 @@ An incident can have several candidate rows or none. Each run replaces the previ
 2. Configure the existing OpenAI or Azure OpenAI connection in the project-root `.env`. See [.env.example](.env.example) for the provider settings and `LLM_TEMPERATURE`. Use a model or deployment that supports structured outputs and the configured temperature.
 3. Run `.\.venv\Scripts\python.exe linking.py` from the project root.
 
-The linking guide explains which fields reach the model, how it ranks candidates and what each decision means. [Linking guide](docs/linking/README.md)
+For example, an Amazon name match may return ten engagements across hosting, connectivity and backup. Linking sends the incident once with all ten records and assesses each pair. One incident can have several linked engagements. [LLM input columns](docs/linking/input-fields.md)
 
-All candidate engagements for an incident go into one comparison. The code numbers them from 1, and the model returns every plausible candidate in rank order with a rationale and citations. The code resolves those numbers to the original engagement records and copies their IDs into the output.
-
-Open `data/output/engagement_links.xlsx`. Each distinct incident in the candidate workbook gets one row. Candidate columns expand to fit the largest returned ranking. Each rank has a source engagement ID and a rationale containing both citations. The decision is `LINKED` or `NOT_LINKED`. For `LINKED`, the code fills `selected_engagement_id` from the first-ranked record. `confidence` assesses the decision, while `incident_evidence_strength` assesses the incident evidence. `decision_reason` explains both. A `LINKED` decision also includes `linked_strength` (`WEAK`, `MODERATE` or `STRONG`) and a one-sentence `linked_strength_reason` explaining the evidence connecting the selected engagement to the affected service. These two columns are blank for `NOT_LINKED`.
+Open `data/output/engagement_links.xlsx`. Its single `Linking decisions` sheet contains the original candidate rows and columns in source order, plus eight assessment columns. Filter `link_decision` for `LINKED` to see each supported pair. For `NOT_LINKED`, read `link_rationale` to understand whether evidence was missing, ambiguous or contradictory. [Linking output columns](docs/linking/README.md)

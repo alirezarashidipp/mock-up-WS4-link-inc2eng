@@ -1,26 +1,28 @@
 # Linking incidents to engagements
 
-Run `python linking.py` from the project root with `data/output/engagement_candidates.xlsx` as the sole data input. Configure the OpenAI or Azure OpenAI connection in the project-root `.env`. [Connection settings](../../.env.example)
+Run `python linking.py` from the project root. The sole data input is `data/output/engagement_candidates.xlsx`. Configure the provider in the project-root `.env`. [Connection settings](../../.env.example)
 
-Finding filters the incidents and saves each matching incident and engagement together. Linking groups these rows by their nonblank `incident_id` and reads the incident details and candidate engagements from the same workbook. [Finding guide](../finding/README.md) · [Workbook reader](../../app/linking/read_cases.py)
+With `LLM_PROVIDER=openai`, set `OPENAI_API_KEY` and `OPENAI_MODEL`. With `LLM_PROVIDER=azure`, set `AZURE_OPENAI_DEPLOYMENT` to your deployment name. Linking uses the configured tenant, client ID and client secret to obtain a Microsoft Entra token for `AZURE_OPENAI_TOKEN_SCOPE`, then calls the configured endpoint and API version. Both paths reuse one client per run. Each incident request uses `chat.completions.parse` with the YAML prompt, the `LinkingDecision` response schema and `LLM_TEMPERATURE`. [Connection code](../../app/linking/llm_connection.py) · [Request code](../../app/linking/decision.py)
 
-For each incident with candidates, one LLM request compares all supplied engagements. The request includes 74 original incident fields, 22 source fields per engagement and their English definitions. Classification outputs and finder metadata stay local. Missing or blank values are sent as JSON `null`. Zero values are preserved. [Source field lists](../../app/linking/fields.py) · [Decision prompt](../../app/linking/prompt.yml)
+The supplier is already known. Each request contains one incident (74 source fields) and all its distinct engagement records (22 source fields each). The model assesses every supplied engagement independently. Local candidate numbers associate the response with its original rows even if the model returns assessments in another order. Rows with identical engagement inputs within an incident share an assessment. [Input fields](input-fields.md) · [Prompt](../../app/linking/prompt.yml) · [Schema](../../app/linking/schema.py)
 
-The response schema orders the fields as `candidates`, `incident_evidence_strength`, `decision_reason`, `link_decision`, `linked_strength`, `linked_strength_reason` and `confidence`. [Output field definitions](../../app/linking/schema.py)
+## Reading the workbook
 
-The code assigns each engagement a `candidate_number`, starting at 1 within each incident. The model ranks every plausible candidate and returns its `candidate_number`, `incident_citation`, `engagement_citation` and `rationale`. Each citation contains the exact field name and a verbatim source excerpt in the form `column_name: source text`. The code resolves each number to the original record and copies its `ENGAGEMENT_ID` into the result.
+`data/output/engagement_links.xlsx` has one sheet, `Linking decisions`. It retains the active candidate sheet's original rows, columns, order and source IDs. Eight columns follow the source columns.
 
-`data/output/engagement_links.xlsx` contains one row per distinct incident in the candidate workbook. Its base columns are `incident_id`, `link_decision`, `selected_engagement_id`, `confidence`, `decision_reason`, `incident_evidence_strength`, `linked_strength` and `linked_strength_reason`. Candidate columns expand to fit the largest returned ranking. Each rank adds `candidate_N_engagement_id` and `candidate_N_rationale`, whose cell contains the rationale followed by both citations.
-
-| Decision | Meaning |
+| Added column, in order | Meaning |
 | --- | --- |
-| `LINKED` | Evidence distinguishes one engagement, ranked first by the model. |
-| `NOT_LINKED` | The evidence leaves several plausible options, is insufficient for selection, or rules out the supplied options. |
+| `incident_evidence` | Zero or more excerpts from the incident relevant to this engagement. |
+| `engagement_evidence` | Zero or more excerpts from this engagement's record. |
+| `incident_evidence_strength` | Scored once per incident and repeated on its rows. How precisely the incident identifies the affected service and scope needed to find the appropriate engagements. `UNSUPPORTED` means no usable service clues, `WEAK` means broad clues, `MODERATE` means relevant details with a material gap, and `STRONG` means specific identifying details. |
+| `link_rationale` | Why this engagement is supported, contradicted or unresolved. For ambiguous alternatives, the rationale explains what evidence would distinguish them. |
+| `link_decision` | `LINKED` when the evidence supports this particular engagement's involvement. `NOT_LINKED` when the supplied evidence cannot establish that link, including when it rules the engagement out. |
+| `linked_strength` | For `LINKED`, `WEAK` for limited indirect support, `MODERATE` for relevant support with a gap, or `STRONG` for clear and consistent support. Blank for `NOT_LINKED`. |
+| `linked_strength_reason` | For `LINKED`, one sentence explaining the strength. Blank for `NOT_LINKED`. |
+| `llm_confidence` | `LOW`, `MEDIUM` or `HIGH` confidence in this pair's decision. A clear lack of usable evidence can support high confidence in `NOT_LINKED`. |
 
-For `LINKED`, the code fills `selected_engagement_id` from the first-ranked candidate's source record. For `NOT_LINKED`, it leaves the selection blank. Each model decision has one overall `confidence` tag (`LOW`, `MEDIUM` or `HIGH`). High confidence is valid for a well-supported decision to leave an incident unlinked.
+Both evidence fields are lists in JSON. Excel displays each `column_name: verbatim excerpt` on its own line in the corresponding cell and shows `[]` for an empty list. A header-only candidate sheet produces a header-only output with zero model calls.
 
-`incident_evidence_strength` assesses the quality and sufficiency of the incident evidence for identifying the affected service and its scope. `UNSUPPORTED` means usable evidence is absent, `WEAK` means the evidence is indirect or ambiguous, `MODERATE` means relevant evidence has a material gap or conflict, and `STRONG` means clear, specific evidence supports the service context. `decision_reason` explains the decision, confidence and evidence limitations.
+## Two services or two alternatives
 
-`linked_strength` assesses the evidence connecting the selected engagement's scope to the affected service. `WEAK` means limited, indirect support, `MODERATE` means relevant service or scope evidence with a remaining gap, and `STRONG` means clear, specific and consistent evidence with no unresolved material conflict. `linked_strength_reason` explains the chosen tag in one sentence. Both fields are populated for `LINKED` and are JSON `null`, displayed as blank cells in Excel, for `NOT_LINKED`.
-
-An incident with zero matches has no row in the candidate workbook or the linking output. A candidate workbook containing only headers produces a header-only output with zero model calls.
+If an investigation records both an EC2 hosting failure and a Direct Connect disruption, and each engagement covers one of those services, both rows can be `LINKED`. If the incident records only “AWS connectivity lost” and two network engagements differ by an unspecified region, both rows can be `NOT_LINKED`. Each rationale identifies the unresolved regional scope.

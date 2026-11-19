@@ -1,7 +1,6 @@
 import json
 
 from .fields import INCIDENT_FIELDS, ENGAGEMENT_FIELDS
-from .llm_connection import request_temperature
 from .schema import LinkingDecision
 
 
@@ -24,36 +23,31 @@ def number_engagements(engagements):
     return numbered
 
 
-def attach_engagement_ids(decision, engagements):
-    for candidate in decision["candidates"]:
-        candidate_number = candidate.pop("candidate_number")
-        if not 1 <= candidate_number <= len(engagements):
-            raise ValueError("The model selected a candidate_number outside the supplied options.")
-        source = engagements[candidate_number - 1]
-        candidate["engagement_id"] = source["ENGAGEMENT_ID"]
-
-    decision["selected_engagement_id"] = None
-    if decision["link_decision"] == "LINKED":
-        if not decision["candidates"]:
-            raise ValueError("A LINKED decision requires a ranked candidate.")
-        if decision["linked_strength"] is None or not (decision["linked_strength_reason"] or "").strip():
-            raise ValueError("A LINKED decision requires linked_strength and its reason.")
-        first_candidate = decision["candidates"][0]
-        decision["selected_engagement_id"] = first_candidate["engagement_id"]
-    else:
-        decision["linked_strength"] = None
-        decision["linked_strength_reason"] = None
-    return decision
+def assessments_by_number(decision, candidate_count):
+    assessments = {}
+    for candidate in decision.assessments:
+        number = candidate.candidate_number
+        if not 1 <= number <= candidate_count or number in assessments:
+            raise ValueError(f"Unknown or repeated candidate_number {number}.")
+        assessment = candidate.model_dump()
+        assessment["incident_evidence_strength"] = decision.incident_evidence_strength
+        if candidate.link_decision == "LINKED":
+            if not candidate.linked_strength or not (candidate.linked_strength_reason or "").strip():
+                raise ValueError(f"Missing link strength or reason for candidate {number}.")
+        else:
+            assessment["linked_strength"] = None
+            assessment["linked_strength_reason"] = None
+        assessments[number] = assessment
+    if len(assessments) != candidate_count:
+        raise ValueError("The model omitted a candidate assessment.")
+    return assessments
 
 
-def request_decision(client, model, incident, engagements, definitions, prompt):
+def request_decision(client, model, incident, engagements, definitions, prompt, temperature):
     incident = source_values(incident, INCIDENT_FIELDS)
     numbered_engagements = number_engagements(engagements)
     payload = {
-        "field_definitions": {
-            "incident": {field: definitions["incident"][field] for field in INCIDENT_FIELDS},
-            "engagement": {field: definitions["engagement"][field] for field in ENGAGEMENT_FIELDS},
-        },
+        "field_definitions": definitions,
         "incident": incident,
         "engagements": numbered_engagements,
     }
@@ -64,7 +58,7 @@ def request_decision(client, model, incident, engagements, definitions, prompt):
             {"role": "user", "content": json.dumps(payload, ensure_ascii=False, default=str)},
         ],
         response_format=LinkingDecision,
-        temperature=request_temperature(),
+        temperature=temperature,
         store=False,
     )
     if not response.choices:
@@ -72,5 +66,4 @@ def request_decision(client, model, incident, engagements, definitions, prompt):
     message = response.choices[0].message
     if message.refusal or message.parsed is None:
         raise ValueError("The model returned no structured linking decision.")
-    decision = message.parsed.model_dump()
-    return attach_engagement_ids(decision, engagements)
+    return assessments_by_number(message.parsed, len(engagements))

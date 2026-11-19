@@ -1,4 +1,3 @@
-import json
 import os
 from contextlib import contextmanager
 from pathlib import Path
@@ -11,27 +10,28 @@ from openai import AzureOpenAI, OpenAI, OpenAIError
 
 @contextmanager
 def llm_connection():
-    """Yield a client and model name, then close the connection resources."""
+    """Read the run settings and keep the provider client open for this run."""
     load_dotenv(Path(__file__).resolve().parents[2] / ".env")
     provider = os.getenv("LLM_PROVIDER", "openai").strip().lower()
     if provider not in ("openai", "azure"):
         raise ValueError("LLM_PROVIDER must be openai or azure.")
 
-    required = ["OPENAI_API_KEY"]
+    required = ["OPENAI_API_KEY", "OPENAI_MODEL"]
     if provider == "azure":
         required = [
             "AZURE_TENANT_ID", "AZURE_CLIENT_ID", "AZURE_CLIENT_SECRET",
             "AZURE_OPENAI_TOKEN_SCOPE", "AZURE_OPENAI_ENDPOINT",
             "AZURE_OPENAI_API_VERSION", "AZURE_OPENAI_DEPLOYMENT",
         ]
+    required.append("LLM_TEMPERATURE")
     missing = [name for name in required if not os.getenv(name, "").strip()]
     if missing:
         raise ValueError("Missing settings: " + ", ".join(missing))
+    temperature = float(os.environ["LLM_TEMPERATURE"])
 
     if provider == "openai":
-        model = os.getenv("OPENAI_MODEL") or "gpt-4.1-mini"
         with OpenAI(api_key=os.environ["OPENAI_API_KEY"], timeout=60, max_retries=1) as client:
-            yield client, model
+            yield client, os.environ["OPENAI_MODEL"], temperature
         return
 
     with EnvironmentCredential() as credential:
@@ -40,7 +40,6 @@ def llm_connection():
         )
 
         def azure_token():
-            # Keep authentication failures compatible with the pipeline's API error handling.
             try:
                 return token_provider()
             except AzureError:
@@ -53,34 +52,4 @@ def llm_connection():
             timeout=60,
             max_retries=1,
         ) as client:
-            yield client, os.environ["AZURE_OPENAI_DEPLOYMENT"]
-
-
-def request_temperature():
-    value = os.getenv("LLM_TEMPERATURE", "").strip()
-    if not value:
-        raise ValueError("LLM_TEMPERATURE is required.")
-    temperature = float(value)
-    if not 0 <= temperature <= 2:
-        raise ValueError("LLM_TEMPERATURE must be between 0 and 2.")
-    return temperature
-
-
-def request_classification(client, model, fields, prompt):
-    from app.schema import response_schema
-
-    temperature = request_temperature()
-    schema = response_schema()
-    return client.chat.completions.create(
-        model=model,
-        messages=[
-            {"role": "system", "content": prompt},
-            {"role": "user", "content": json.dumps(fields, ensure_ascii=False)},
-        ],
-        response_format={
-            "type": "json_schema",
-            "json_schema": {"name": "Classification", "strict": True, "schema": schema},
-        },
-        temperature=temperature,
-        store=False,
-    )
+            yield client, os.environ["AZURE_OPENAI_DEPLOYMENT"], temperature

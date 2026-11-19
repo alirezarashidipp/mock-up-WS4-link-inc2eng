@@ -1,66 +1,46 @@
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
-from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font
 from openpyxl.utils import get_column_letter
 
 
-DECISION_COLUMNS = [
-    "incident_id",
-    "link_decision",
-    "selected_engagement_id",
-    "confidence",
-    "decision_reason",
-    "incident_evidence_strength",
-    "linked_strength",
-    "linked_strength_reason",
-]
+OUTPUT_COLUMNS = (
+    "incident_evidence", "engagement_evidence", "incident_evidence_strength", "link_rationale",
+    "link_decision", "linked_strength", "linked_strength_reason", "llm_confidence",
+)
 
 
-def save_results(path, results):
-    path = Path(path)
-    workbook = Workbook()
-    sheet = workbook.active
-    sheet.title = "Linking decisions"
+def append_headers(sheet, headers):
+    if any(name in headers for name in OUTPUT_COLUMNS):
+        raise ValueError("The candidate sheet already contains a linking output column.")
+    first_column = len(headers) + 1
+    for column, name in enumerate(OUTPUT_COLUMNS, start=first_column):
+        sheet.cell(1, column, name).font = Font(bold=True)
+        sheet.column_dimensions[get_column_letter(column)].width = 60 if name in (
+            "incident_evidence", "engagement_evidence", "link_rationale", "linked_strength_reason"
+        ) else len(name) + 6
+    return first_column
 
-    headers = DECISION_COLUMNS.copy()
-    candidate_counts = [len(result["candidates"]) for result in results]
-    maximum_candidates = max(candidate_counts, default=0)
-    for rank in range(1, maximum_candidates + 1):
-        headers.append(f"candidate_{rank}_engagement_id")
-        headers.append(f"candidate_{rank}_rationale")
-    sheet.append(headers)
 
-    for column, header in enumerate(headers, start=1):
-        sheet.cell(1, column).font = Font(bold=True)
-        width = len(header) + 6
-        if header.endswith(("reason", "rationale")):
-            width = 65
-        sheet.column_dimensions[get_column_letter(column)].width = width
-
-    for row_number, result in enumerate(results, start=2):
-        values = [result[column] for column in DECISION_COLUMNS]
-        candidates = result["candidates"]
-        for candidate in candidates:
-            eng_id = candidate["engagement_id"]
-            rationale = (
-                f"{candidate['rationale']}\n"
-                f"{candidate['incident_citation']}\n"
-                f"{candidate['engagement_citation']}"
-            )
-            values.extend([eng_id, rationale])
-
-        for column, value in enumerate(values, start=1):
-            if isinstance(value, str) and len(value) > 32767:
-                raise ValueError(f"{headers[column - 1]} exceeds the Excel cell text limit.")
-            cell = sheet.cell(row_number, column, value)
-            if isinstance(value, str):
-                cell.data_type = "s"
+def write_assessment(sheet, row_numbers, first_column, assessment):
+    for column, name in enumerate(OUTPUT_COLUMNS, start=first_column):
+        value = assessment[name]
+        if name in ("incident_evidence", "engagement_evidence"):
+            value = "\n".join(value) or "[]"
+        if value is None:
+            continue
+        if len(value) > 32767:
+            raise ValueError(f"{name} exceeds the Excel cell text limit.")
+        for row in row_numbers:
+            cell = sheet.cell(row, column, value)
+            cell.data_type = "s"
             cell.alignment = Alignment(vertical="top", wrap_text=True)
 
-    sheet.freeze_panes = "B2"
-    sheet.auto_filter.ref = sheet.dimensions
+
+def save_results(workbook, path):
+    path = Path(path)
+    workbook.active.auto_filter.ref = workbook.active.dimensions
     path.parent.mkdir(parents=True, exist_ok=True)
     with NamedTemporaryFile(dir=path.parent, suffix=".xlsx", delete=False) as temporary:
         temporary_path = Path(temporary.name)
