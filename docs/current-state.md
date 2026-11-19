@@ -40,3 +40,4 @@ Fuzzy comparisons use the `fuzzy-match` library and normalized Levenshtein simil
 `data/output/engagement_candidates.xlsx` contains both original records followed by `standardised_supplier_name`, `matched_supplier_column`, `match_type` and `found_name_in_source`. The last field copies the full source cell selected by the matcher, preserving its casing, punctuation and spacing. When a supplier header overlaps an incident header, the supplier header gets an `ENG.` prefix. Each run replaces the previous workbook. The INC and ENG dictionaries in `config/` document the input fields. ENG definitions are provisional descriptions based on the supplied headers.
 
 Stage two (LLM engagement selection) is pending. The existing LLM connection module is independent of this stage.
+See [the 12 matching scenarios](scenarios/matching.md) for worked inputs and expected workbook rows.
