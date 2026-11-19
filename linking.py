@@ -10,7 +10,6 @@ from app.linking.llm_connection import llm_connection
 
 ROOT = Path(__file__).resolve().parent
 PROMPT_FILE = ROOT / "app/linking/prompt.yml"
-INCIDENTS = ROOT / "data/input/CLASSIFIED_INCIDENTS.csv"
 CANDIDATES = ROOT / "data/output/engagement_candidates.xlsx"
 OUTPUT = ROOT / "data/output/engagement_links.xlsx"
 
@@ -33,35 +32,21 @@ def read_definitions():
     return definitions
 
 
-def no_candidates(incident):
-    return {
-        "incident_id": incident["incident_id"],
-        "link_decision": "NO_CANDIDATES",
-        "selected_engagement_id": None,
-        "confidence": None,
-        "decision_reason": "The finder returned no engagement candidates for this incident.",
-        "candidates": [],
-    }
-
-
 def link_incidents(cases, definitions, prompt):
-    if not any(engagements for _, engagements in cases):
-        return [no_candidates(incident) for incident, _ in cases]
+    if not cases:
+        return []
 
     results = []
     with llm_connection() as (client, model):
         for incident, engagements in cases:
-            if not engagements:
-                results.append(no_candidates(incident))
-                continue
             decision = request_decision(client, model, incident, engagements, definitions, prompt)
             decision["incident_id"] = incident["incident_id"]
             results.append(decision)
     return results
 
 
-def main(incident_file=INCIDENTS, candidates_file=CANDIDATES, output_file=OUTPUT):
-    cases = read_cases(incident_file, candidates_file)
+def main(candidates_file=CANDIDATES, output_file=OUTPUT):
+    cases = read_cases(candidates_file)
     definitions = read_definitions()
     prompt = read_prompt(PROMPT_FILE)
     results = link_incidents(cases, definitions, prompt)

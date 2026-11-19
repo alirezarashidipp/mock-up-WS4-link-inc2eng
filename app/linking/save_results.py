@@ -12,6 +12,9 @@ DECISION_COLUMNS = [
     "selected_engagement_id",
     "confidence",
     "decision_reason",
+    "incident_evidence_strength",
+    "linked_strength",
+    "linked_strength_reason",
 ]
 
 
@@ -22,7 +25,9 @@ def save_results(path, results):
     sheet.title = "Linking decisions"
 
     headers = DECISION_COLUMNS.copy()
-    for rank in range(1, 4):
+    candidate_counts = [len(result["candidates"]) for result in results]
+    maximum_candidates = max(candidate_counts, default=0)
+    for rank in range(1, maximum_candidates + 1):
         headers.append(f"candidate_{rank}_engagement_id")
         headers.append(f"candidate_{rank}_rationale")
     sheet.append(headers)
@@ -37,14 +42,12 @@ def save_results(path, results):
     for row_number, result in enumerate(results, start=2):
         values = [result[column] for column in DECISION_COLUMNS]
         candidates = result["candidates"]
-        if len(candidates) > 3:
-            raise ValueError("An incident can have at most three ranked candidates.")
         for candidate in candidates:
             eng_id = candidate["engagement_id"]
             rationale = (
                 f"{candidate['rationale']}\n"
-                f'INC.{candidate["incident_field"]}: "{candidate["incident_quote"]}"\n'
-                f'{eng_id}.{candidate["engagement_field"]}: "{candidate["engagement_quote"]}"'
+                f"{candidate['incident_citation']}\n"
+                f"{candidate['engagement_citation']}"
             )
             values.extend([eng_id, rationale])
 

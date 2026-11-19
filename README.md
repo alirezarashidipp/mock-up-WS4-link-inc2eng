@@ -33,10 +33,12 @@ An incident can have several candidate rows or none. Each run replaces the previ
 
 ## Link incidents to engagements
 
-1. Include a unique, nonblank `incident_id` for each eligible incident and run the finder on the current inputs.
+1. Place the Finding output at `data/output/engagement_candidates.xlsx`. This workbook supplies both the incident details and engagement records. Linking groups its rows by `incident_id`.
 2. Configure the existing OpenAI or Azure OpenAI connection in the project-root `.env`. See [.env.example](.env.example) for the provider settings and `LLM_TEMPERATURE`. Use a model or deployment that supports structured outputs and the configured temperature.
 3. Run `.\.venv\Scripts\python.exe linking.py` from the project root.
 
 The linking guide explains which fields reach the model, how it ranks candidates and what each decision means. [Linking guide](docs/linking/README.md)
 
-Open `data/output/engagement_links.xlsx`. Each eligible incident gets one row. Each of the three rank slots has an engagement ID and a rationale with a field and excerpt from each source. The top three limit applies to the response. All candidate engagements for the incident go into the comparison. The separate `selected_engagement_id` holds the first-ranked ID only when the model can choose one. Read `decision_reason` alongside the overall `confidence` tag to understand a selection or abstention. An incident with zero candidates gets a local `NO_CANDIDATES` row.
+All candidate engagements for an incident go into one comparison. The code numbers them from 1, and the model returns every plausible candidate in rank order with a rationale and citations. The code resolves those numbers to the original engagement records and copies their IDs into the output.
+
+Open `data/output/engagement_links.xlsx`. Each distinct incident in the candidate workbook gets one row. Candidate columns expand to fit the largest returned ranking. Each rank has a source engagement ID and a rationale containing both citations. The decision is `LINKED` or `NOT_LINKED`. For `LINKED`, the code fills `selected_engagement_id` from the first-ranked record. `confidence` assesses the decision, while `incident_evidence_strength` assesses the incident evidence. `decision_reason` explains both. A `LINKED` decision also includes `linked_strength` (`WEAK`, `MODERATE` or `STRONG`) and a one-sentence `linked_strength_reason` explaining the evidence connecting the selected engagement to the affected service. These two columns are blank for `NOT_LINKED`.
