@@ -53,6 +53,6 @@ def find_candidates(incidents, suppliers):
             column, match_type = match
             row = list(incident.values())
             row.extend(supplier.values())
-            row.extend([name, column, match_type])
+            row.extend([name, column, match_type, supplier[column]])
             candidates.append(row)
     return candidates

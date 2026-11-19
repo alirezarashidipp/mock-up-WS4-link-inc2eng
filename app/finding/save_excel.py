@@ -3,7 +3,7 @@ from openpyxl.cell import WriteOnlyCell
 
 
 def save_candidates(path, incident_headers, supplier_headers, candidates):
-    details = ["standardised_supplier_name", "matched_supplier_column", "match_type"]
+    details = ["standardised_supplier_name", "matched_supplier_column", "match_type", "found_name_in_source"]
     headers = list(incident_headers)
     for column in supplier_headers:
         label = column
