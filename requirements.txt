@@ -2,3 +2,7 @@ PyYAML
 openpyxl
 fuzzy-match==0.0.1
 numpy
+openai>=2,<3
+azure-identity
+python-dotenv
+pydantic>=2,<3

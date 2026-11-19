@@ -8,13 +8,11 @@ from azure.identity import EnvironmentCredential, get_bearer_token_provider
 from dotenv import load_dotenv
 from openai import AzureOpenAI, OpenAI, OpenAIError
 
-from app.schema import response_schema
-
 
 @contextmanager
 def llm_connection():
     """Yield a client and model name, then close the connection resources."""
-    load_dotenv(Path(__file__).resolve().parents[1] / ".env")
+    load_dotenv(Path(__file__).resolve().parents[2] / ".env")
     provider = os.getenv("LLM_PROVIDER", "openai").strip().lower()
     if provider not in ("openai", "azure"):
         raise ValueError("LLM_PROVIDER must be openai or azure.")
@@ -58,17 +56,20 @@ def llm_connection():
             yield client, os.environ["AZURE_OPENAI_DEPLOYMENT"]
 
 
-def request_classification(client, model, fields, prompt):
-    temperature_value = os.getenv("LLM_TEMPERATURE")
-    if temperature_value is None or not temperature_value.strip():
+def request_temperature():
+    value = os.getenv("LLM_TEMPERATURE", "").strip()
+    if not value:
         raise ValueError("LLM_TEMPERATURE is required.")
-    try:
-        temperature = float(temperature_value)
-    except ValueError:
-        raise ValueError("LLM_TEMPERATURE must be a number between 0 and 2.") from None
+    temperature = float(value)
     if not 0 <= temperature <= 2:
-        raise ValueError("LLM_TEMPERATURE must be a number between 0 and 2.")
+        raise ValueError("LLM_TEMPERATURE must be between 0 and 2.")
+    return temperature
 
+
+def request_classification(client, model, fields, prompt):
+    from app.schema import response_schema
+
+    temperature = request_temperature()
     schema = response_schema()
     return client.chat.completions.create(
         model=model,

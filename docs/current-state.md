@@ -1,43 +1,29 @@
-# Current state
+# Incident-to-engagement linking
 
-Stage one runs locally with Python. Install dependencies with `python -m pip install -r requirements.txt` and run `python finding.py` from the project root.
+Run these commands from the project root. Both workbooks are written to `data/output/`.
 
-The stage-one steps are visible in `finding.py`. Their implementations are in `app/finding/`.
+| Command | Output | One row per |
+| --- | --- | --- |
+| `python finding.py` | `engagement_candidates.xlsx` | Incident and matching engagement record |
+| `python linking.py` | `engagement_links.xlsx` | Eligible incident, including those with zero candidates |
 
-| Step | Module |
-| --- | --- |
-| Read incident rows | `read_incidents.py` |
-| Select eligible incidents | `select_incidents.py` |
-| Clean incident supplier names | `clean_incidents.py` |
-| Load and apply the YAML name replacements | `replace_names.py` |
-| Read engagement records from `ENG_ALL` | `read_suppliers.py` |
-| Clean the two third-party name fields | `clean_suppliers.py` |
-| Find matching candidate records | `match_rows.py` |
-| Save the Excel workbook | `save_excel.py` |
+## Finding candidates
 
-Both input readers use `read_files.py` for table parsing.
+Place `CLASSIFIED_INCIDENTS.csv` and one `ENG_ALL.csv` or `ENG_ALL.xlsx` in `data/input/`. The finder selects rows with `class = SUPPLIER` and a usable `classified_supplier_name`. It cleans incident names and applies [supplier aliases](../config/supplier_aliases.yml). Engagement names receive only lowercase and whitespace removal.
 
-Place `CLASSIFIED_INCIDENTS.csv` and exactly one of `ENG_ALL.csv` or `ENG_ALL.xlsx` in `data/input/`. CSV inputs use UTF-8 and commas. Excel input uses the active worksheet. The incident file has headers in its first row. The engagement file accepts headers in the first row or field names down the first column with one engagement in each subsequent column. It requires `ENGAGEMENT_ID` and both third-party name fields. All additional source fields, including engagement name, description and management hierarchy, are copied into each matching output row.
+| Match | First engagement field | Second engagement field |
+| --- | --- | --- |
+| `EXACT` | `THIRD_PARTY_NAME` | `THIRD_PARTY_NORMALISED_NAME` |
+| `PARTIAL` (substring, then fuzzy) | `THIRD_PARTY_NORMALISED_NAME` | `THIRD_PARTY_NAME` |
 
-Only `SUPPLIER` incidents with a usable `classified_supplier_name` enter matching. Incident names use three lists in `app/finding/clean_incidents.py`.
+Fuzzy matching requires at least five incident-name characters and a similarity of 0.72 or higher. The workbook includes `ENGAGEMENT_ID`, the original source fields, the matching column and its original value in `found_name_in_source`. [12 worked examples](scenarios/matching.html)
 
-- `SPECIAL_CHARACTERS` become spaces before word removal.
-- `STOP_WORDS` removes whole words such as `the`, `of`, `holding`, `partners`, `llm` and `solutions`.
-- `LEGAL_SUFFIXES` removes corporate designators such as `plc`, `llc`, `corporation`, `inc` and `ltd`. They are matched as whole words anywhere in the name, including forms with a trailing period such as `Inc.`.
+## Selecting an engagement
 
-The incident cleaner lowercases the text and collapses whitespace. Whole-name YAML replacements apply after cleaning. For example, the cleaned incident name `gcp` maps to `google cloud platform`. An incident whose name becomes empty produces no candidates.
+Linking requires a unique, nonblank `incident_id` and the candidate workbook from the same inputs. Eligibility and checks for a stale candidate workbook run locally. For each eligible incident with candidates, the LLM receives the 74 raw incident fields and 22 source fields per engagement listed in [fields.py](../app/linking/fields.py), together with their YAML definitions. Classification outputs and finder metadata stay outside the request. Missing or blank values appear as JSON `null`; zero values retain their source meaning.
 
-Engagement names use lowercase text with all whitespace removed for comparison. Punctuation, legal suffixes and words such as `the` remain part of the engagement name. The incident search name is also compared without whitespace. For example, incident `PingIdentity` matches engagement `Ping Identity` exactly.
+The model compares all candidates in one request and ranks up to three distinct engagement IDs. Each rationale cites fields and excerpts from both sources.
 
-| Check order for one engagement | First field | Second field | Output label |
-| --- | --- | --- | --- |
-| Full equality | `THIRD_PARTY_NAME` | `THIRD_PARTY_NORMALISED_NAME` | `EXACT` |
-| Incident name occurs literally anywhere in the engagement name | `THIRD_PARTY_NORMALISED_NAME` | `THIRD_PARTY_NAME` | `PARTIAL` |
-| Fuzzy comparison | `THIRD_PARTY_NORMALISED_NAME` | `THIRD_PARTY_NAME` | `PARTIAL` |
+Only `LINKED` fills `selected_engagement_id`. Other model decisions are `AMBIGUOUS`, `INSUFFICIENT_EVIDENCE` and `NO_SUITABLE_CANDIDATE`. Each model decision includes a confidence tag (`LOW`, `MEDIUM` or `HIGH`) and a reason. An incident with no candidates gets `NO_CANDIDATES` locally and a blank confidence.
 
-Fuzzy comparisons use the `fuzzy-match` library and normalized Levenshtein similarity. The compact incident name must contain at least five characters. A score of at least 0.72 against a contiguous sequence of engagement-name words qualifies as a partial match. Literal substring checks apply even to shorter names, so `BT` can match `DEBT`. The first successful check produces one row for that incident and engagement. Different engagements can produce both exact and partial candidates for one incident.
-
-`data/output/engagement_candidates.xlsx` contains both original records followed by `standardised_supplier_name`, `matched_supplier_column`, `match_type` and `found_name_in_source`. The last field copies the full source cell selected by the matcher, preserving its casing, punctuation and spacing. When a supplier header overlaps an incident header, the supplier header gets an `ENG.` prefix. Each run replaces the previous workbook. The INC and ENG dictionaries in `config/` document the input fields. ENG definitions are provisional descriptions based on the supplied headers.
-
-Stage two (LLM engagement selection) is pending. The existing LLM connection module is independent of this stage.
-See [the 12 matching scenarios](scenarios/matching.html) for worked inputs and expected workbook rows.
+The [connection module](../app/linking/llm_connection.py) reads OpenAI or Azure settings from the project-root `.env`. The [YAML prompt](../app/linking/prompt.yml) defines the decision instructions, the [Pydantic schema](../app/linking/schema.py) defines the response, and [validation](../app/linking/validation.py) checks IDs and quoted evidence before export.
