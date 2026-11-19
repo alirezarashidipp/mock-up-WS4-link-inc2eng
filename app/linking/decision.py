@@ -34,6 +34,11 @@ def assessments_by_number(decision, candidate_count):
         assessments[number] = assessment
     if len(assessments) != candidate_count:
         raise ValueError("The model omitted a candidate assessment.")
+    labels = [assessment["link_decision"] for assessment in assessments.values()]
+    if labels.count("STRONGEST_LINKED") > 1:
+        raise ValueError("Multiple candidates were marked STRONGEST_LINKED for one incident.")
+    if labels.count("LINKED") == 1 and "STRONGEST_LINKED" not in labels:
+        raise ValueError("The sole confirmed link must be marked STRONGEST_LINKED.")
     return assessments
 
 

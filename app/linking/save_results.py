@@ -74,7 +74,7 @@ def unfinished_cases(cases, rows, source_width):
             for number in row_numbers:
                 row = rows[number - 2]
                 decision = row[decision_column]
-                if decision not in ("", "LINKED", "POSSIBLY_LINKED", "NOT_LINKED") or (not decision and any(row[source_width:])):
+                if decision not in ("", "STRONGEST_LINKED", "LINKED", "POSSIBLY_LINKED", "NOT_LINKED") or (not decision and any(row[source_width:])):
                     raise ValueError(f"Invalid saved assessment at CSV row {number}.")
                 decisions.add(decision)
         if "" in decisions:

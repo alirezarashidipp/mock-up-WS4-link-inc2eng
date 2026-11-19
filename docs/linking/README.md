@@ -14,14 +14,16 @@ The supplier is already known. Each request contains one incident (74 source fie
 | --- | --- |
 | `incident_evidence_citation` | Zero or more excerpts from the incident relevant to this engagement. |
 | `engagement_evidence_citation` | Zero or more excerpts from this engagement's record. |
-| `incident_evidence__citation_strength` | Scored once per incident and repeated on its rows. How precisely the incident identifies the affected service and scope needed to find the appropriate engagements. `UNSUPPORTED` means no usable service clues, `WEAK` means broad clues, `MODERATE` means relevant details with a material gap, and `STRONG` means specific identifying details. |
-| `engagement_evidence__citation_strength` | Quality of this engagement record alone. `UNSUPPORTED` means no usable scope, `WEAK` means generic scope, `MODERATE` means an identifiable service with material scope gaps, and `STRONG` means a specific service and scope. An unrelated engagement can still score `STRONG`. |
+| `incident_evidence__citation_strength` | Scored once per incident and repeated on its rows. `UNSUPPORTED` means no usable service clues, `WEAK` means broad or ambiguous clues, `MODERATE` means relevant details with a material gap or conflict, and `STRONG` means specific service and scope details with no unresolved material conflict. |
+| `engagement_evidence__citation_strength` | Quality of this engagement record alone. `UNSUPPORTED` means no usable scope, `WEAK` means generic or ambiguous scope, `MODERATE` means an identifiable service with a material gap or conflict, and `STRONG` means specific service and scope with no unresolved material conflict. An unrelated engagement can still score `STRONG`. |
 | `link_rationale` | Why this engagement is supported, contradicted or unresolved. For ambiguous alternatives, the rationale explains what evidence would distinguish them. |
-| `link_decision` | `LINKED` when the evidence supports this particular engagement's involvement. `POSSIBLY_LINKED` when a concrete service match leaves involvement unresolved. `NOT_LINKED` when scope conflicts or there is no service-specific support. |
+| `link_decision` | `STRONGEST_LINKED` for the sole confirmed engagement or one whose involvement has uniquely strongest evidence. `LINKED` for other confirmed links, including ties for strongest. `POSSIBLY_LINKED` for a concrete service fit with unresolved involvement. `NOT_LINKED` for incompatible scope or no service-specific support. |
 | `link_decision_confidence_reason` | One sentence identifying the evidence, conflict or gap that warrants the confidence level for this decision. |
-| `link_decision_confidence` | `LOW`, `MEDIUM` or `HIGH` confidence in this pair's decision. A clear lack of usable evidence can support high confidence in `NOT_LINKED`. |
+| `link_decision_confidence` | Qualitative confidence in the chosen label. `LOW` means substantial doubt, `MEDIUM` meaningful doubt, and `HIGH` little remaining doubt. Clearly established uncertainty can support `HIGH` confidence in `POSSIBLY_LINKED`. |
 
-Both citation fields contain lists of verbatim excerpts in the form `column_name: excerpt` in the model response. The CSV stores one excerpt per line in a quoted field and writes `[]` for an empty list. A header-only candidate sheet produces a header-only CSV with zero model calls.
+Each citation is a contiguous excerpt from the named field in the incident or current engagement. The prompt prioritises confirmed findings, preserves negation and material counterevidence, and treats copied claims as one account. Superseded accounts require recorded timing or corrections supporting that interpretation. The rationale names only gaps that could change the decision. The CSV stores one `column_name: excerpt` per line and writes `[]` for an empty list. A header-only candidate sheet produces a header-only CSV with zero model calls.
+
+Input values supply evidence, while field definitions explain meaning. Embedded instructions are ignored. Each link requires its own service evidence. Eliminating other candidates supplies no support for the remaining candidate. Source strength and decision confidence are assessed separately using the schema.
 
 ## Resuming a run
 
