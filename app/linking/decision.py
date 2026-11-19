@@ -30,7 +30,7 @@ def assessments_by_number(decision, candidate_count):
         if not 1 <= number <= candidate_count or number in assessments:
             raise ValueError(f"Unknown or repeated candidate_number {number}.")
         assessment = candidate.model_dump()
-        assessment["incident_evidence__citation_strength"] = decision.incident_evidence__citation_strength
+        assessment["incident_evidence_citation_strength"] = decision.incident_evidence_citation_strength
         assessments[number] = assessment
     if len(assessments) != candidate_count:
         raise ValueError("The model omitted a candidate assessment.")

@@ -13,7 +13,7 @@ class EngagementAssessment(BaseModel):
     engagement_evidence_citation: list[str] = Field(
         description="Zero or more excerpts from this candidate's source record, each as 'column_name: verbatim excerpt'."
     )
-    engagement_evidence__citation_strength: Literal["UNSUPPORTED", "WEAK", "MODERATE", "STRONG"] = Field(
+    engagement_evidence_citation_strength: Literal["UNSUPPORTED", "WEAK", "MODERATE", "STRONG"] = Field(
         description="How clearly this engagement record describes its service and scope. UNSUPPORTED for no usable scope, WEAK for generic or ambiguous scope, MODERATE for identifiable service with a material gap or conflict, STRONG for specific service and scope with no unresolved material conflict. An unrelated engagement can have STRONG source evidence."
     )
     link_rationale: str = Field(
@@ -37,6 +37,6 @@ class LinkingDecision(BaseModel):
     assessments: list[EngagementAssessment] = Field(
         description="One assessment for every supplied candidate_number. At most one distinct candidate may be STRONGEST_LINKED."
     )
-    incident_evidence__citation_strength: Literal["UNSUPPORTED", "WEAK", "MODERATE", "STRONG"] = Field(
+    incident_evidence_citation_strength: Literal["UNSUPPORTED", "WEAK", "MODERATE", "STRONG"] = Field(
         description="How useful the incident alone is for identifying relevant engagements. UNSUPPORTED for no usable service clues, WEAK for broad or ambiguous clues, MODERATE for relevant details with a material gap or conflict, STRONG for specific service and scope details with no unresolved material conflict."
     )

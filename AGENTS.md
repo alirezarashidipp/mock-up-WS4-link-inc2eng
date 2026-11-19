@@ -2,7 +2,7 @@
 
 Keep the stage-one entry point in `finding.py` at the project root. Use plain functions under `app/finding/`. In `main()`, show the steps for reading each source, selecting incident rows, cleaning names, applying alias replacements, matching and saving.
 
-Preserve original source values in the candidate workbook. Change supplier exceptions in `config/supplier_aliases.yml`. Keep code, definitions, documentation and output labels in English. Update the relevant stage guide in `docs/finding/README.md` or `docs/linking/README.md` when behaviour changes. Keep the stage index in `docs/current-state.md` aligned with both guides.
+Preserve original source values in the candidate workbook. Change supplier exceptions in `config/supplier_aliases.yml`. Keep code, definitions, documentation and output labels in English. Update the relevant stage guide in `app/finding/docs/README.md` or `app/linking/docs/README.md` when behaviour changes. Keep the project-root `README.md` aligned with both guides. Documentation describes the current project state.
 
 Incident names follow the rules in `app/finding/clean_incidents.py` and use whole-name YAML aliases. For engagement name comparisons, lowercase the source text and remove whitespace. Match types and column priorities live in `app/finding/match_rows.py`.
 

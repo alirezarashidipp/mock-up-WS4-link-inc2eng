@@ -6,7 +6,7 @@ from tempfile import NamedTemporaryFile
 
 OUTPUT_COLUMNS = (
     "incident_evidence_citation", "engagement_evidence_citation",
-    "incident_evidence__citation_strength", "engagement_evidence__citation_strength",
+    "incident_evidence_citation_strength", "engagement_evidence_citation_strength",
     "link_rationale", "link_decision", "link_decision_confidence_reason", "link_decision_confidence",
 )
 
@@ -50,9 +50,12 @@ def load_progress(path, headers, source_rows):
         return rows
 
     csv.field_size_limit(max(csv.field_size_limit(), 2**31 - 1))
+    legacy_columns = [column.replace("_citation_strength", "__citation_strength") for column in OUTPUT_COLUMNS]
+    legacy_headers = [*headers, *legacy_columns]
     with saved.open(encoding="utf-8-sig", newline="") as stream:
         reader = csv.reader(stream, strict=True)
-        if next(reader, None) != output_headers:
+        saved_headers = next(reader, None)
+        if saved_headers not in (output_headers, legacy_headers):
             raise ValueError(f"{saved.name} has different headers. Use a separate output for this input.")
         rows = list(reader)
     if len(rows) != len(source_rows):
@@ -60,7 +63,9 @@ def load_progress(path, headers, source_rows):
     for number, (row, source) in enumerate(zip(rows, source_rows), start=2):
         if len(row) != len(output_headers) or row[:len(headers)] != source:
             raise ValueError(f"{saved.name} differs from the candidate workbook at row {number}.")
-    if saved == pending:
+    if saved_headers == legacy_headers:
+        save_progress(path, output_headers, rows)
+    elif saved == pending:
         pending.replace(path)
     return rows
 
