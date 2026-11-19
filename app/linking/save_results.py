@@ -1,51 +1,84 @@
+import csv
+import os
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
-from openpyxl.styles import Alignment, Font
-from openpyxl.utils import get_column_letter
-
 
 OUTPUT_COLUMNS = (
-    "incident_evidence", "engagement_evidence", "incident_evidence_strength", "link_rationale",
-    "link_decision", "linked_strength", "linked_strength_reason", "llm_confidence",
+    "incident_evidence_citation", "engagement_evidence_citation",
+    "incident_evidence__citation_strength", "engagement_evidence__citation_strength",
+    "link_rationale", "link_decision", "link_decision_confidence_reason", "link_decision_confidence",
 )
 
 
-def append_headers(sheet, headers):
-    if any(name in headers for name in OUTPUT_COLUMNS):
-        raise ValueError("The candidate sheet already contains a linking output column.")
-    first_column = len(headers) + 1
-    for column, name in enumerate(OUTPUT_COLUMNS, start=first_column):
-        sheet.cell(1, column, name).font = Font(bold=True)
-        sheet.column_dimensions[get_column_letter(column)].width = 60 if name in (
-            "incident_evidence", "engagement_evidence", "link_rationale", "linked_strength_reason"
-        ) else len(name) + 6
-    return first_column
-
-
-def write_assessment(sheet, row_numbers, first_column, assessment):
-    for column, name in enumerate(OUTPUT_COLUMNS, start=first_column):
+def assessment_values(assessment):
+    values = []
+    for name in OUTPUT_COLUMNS:
         value = assessment[name]
-        if name in ("incident_evidence", "engagement_evidence"):
+        if name in ("incident_evidence_citation", "engagement_evidence_citation"):
             value = "\n".join(value) or "[]"
-        if value is None:
-            continue
-        if len(value) > 32767:
-            raise ValueError(f"{name} exceeds the Excel cell text limit.")
-        for row in row_numbers:
-            cell = sheet.cell(row, column, value)
-            cell.data_type = "s"
-            cell.alignment = Alignment(vertical="top", wrap_text=True)
+        values.append("" if value is None else value)
+    return values
 
 
-def save_results(workbook, path):
-    path = Path(path)
-    workbook.active.auto_filter.ref = workbook.active.dimensions
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with NamedTemporaryFile(dir=path.parent, suffix=".xlsx", delete=False) as temporary:
-        temporary_path = Path(temporary.name)
+def save_progress(path, headers, rows):
+    pending = path.with_name(path.name + ".pending")
+    stream = NamedTemporaryFile(dir=path.parent, mode="w", encoding="utf-8-sig", newline="",
+                                suffix=".tmp", delete=False)
+    temporary = Path(stream.name)
     try:
-        workbook.save(temporary_path)
-        temporary_path.replace(path)
+        with stream:
+            writer = csv.writer(stream)
+            writer.writerow(headers)
+            writer.writerows(rows)
+            stream.flush()
+            os.fsync(stream.fileno())
+        temporary.replace(pending)
+        # If Excel has locked the CSV, the completed snapshot is available on restart.
+        pending.replace(path)
     finally:
-        temporary_path.unlink(missing_ok=True)
+        temporary.unlink(missing_ok=True)
+
+
+def load_progress(path, headers, source_rows):
+    pending = path.with_name(path.name + ".pending")
+    saved = pending if pending.exists() else path
+    output_headers = [*headers, *OUTPUT_COLUMNS]
+    if not saved.exists():
+        rows = [row + [""] * len(OUTPUT_COLUMNS) for row in source_rows]
+        save_progress(path, output_headers, rows)
+        return rows
+
+    csv.field_size_limit(max(csv.field_size_limit(), 2**31 - 1))
+    with saved.open(encoding="utf-8-sig", newline="") as stream:
+        reader = csv.reader(stream, strict=True)
+        if next(reader, None) != output_headers:
+            raise ValueError(f"{saved.name} has different headers. Use a separate output for this input.")
+        rows = list(reader)
+    if len(rows) != len(source_rows):
+        raise ValueError(f"{saved.name} has a different row count from the candidate workbook.")
+    for number, (row, source) in enumerate(zip(rows, source_rows), start=2):
+        if len(row) != len(output_headers) or row[:len(headers)] != source:
+            raise ValueError(f"{saved.name} differs from the candidate workbook at row {number}.")
+    if saved == pending:
+        pending.replace(path)
+    return rows
+
+
+def unfinished_cases(cases, rows, source_width):
+    decision_column = source_width + OUTPUT_COLUMNS.index("link_decision")
+    unfinished = []
+    for incident, candidates in cases.values():
+        decisions = set()
+        for _, row_numbers in candidates.values():
+            for number in row_numbers:
+                row = rows[number - 2]
+                decision = row[decision_column]
+                if decision not in ("", "LINKED", "POSSIBLY_LINKED", "NOT_LINKED") or (not decision and any(row[source_width:])):
+                    raise ValueError(f"Invalid saved assessment at CSV row {number}.")
+                decisions.add(decision)
+        if "" in decisions:
+            if len(decisions) > 1:
+                raise ValueError(f"Partial saved incident {incident['incident_id']}.")
+            unfinished.append((incident, candidates))
+    return unfinished

@@ -39,4 +39,4 @@ An incident can have several candidate rows or none. Each run replaces the previ
 
 For example, an Amazon name match may return ten engagements across hosting, connectivity and backup. Linking sends the incident once with all ten records and assesses each pair. One incident can have several linked engagements. [LLM input columns](docs/linking/input-fields.md)
 
-Open `data/output/engagement_links.xlsx`. Its single `Linking decisions` sheet contains the original candidate rows and columns in source order, plus eight assessment columns. Filter `link_decision` for `LINKED` to see each supported pair. For `NOT_LINKED`, read `link_rationale` to understand whether evidence was missing, ambiguous or contradictory. [Linking output columns](docs/linking/README.md)
+Open `data/output/engagement_links.csv`. The CSV contains the original candidate rows and columns in source order, plus eight assessment columns. All rows for one incident are saved together before the next request. If a run stops, run `python linking.py` again with the same input to continue. A blank `link_decision` on a candidate row means it is pending. [Output columns and recovery](docs/linking/README.md)

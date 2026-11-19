@@ -1,5 +1,6 @@
 PyYAML
 openpyxl
+filelock
 fuzzy-match==0.0.1
 numpy
 openai>=2,<3

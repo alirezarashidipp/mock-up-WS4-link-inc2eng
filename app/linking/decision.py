@@ -30,13 +30,7 @@ def assessments_by_number(decision, candidate_count):
         if not 1 <= number <= candidate_count or number in assessments:
             raise ValueError(f"Unknown or repeated candidate_number {number}.")
         assessment = candidate.model_dump()
-        assessment["incident_evidence_strength"] = decision.incident_evidence_strength
-        if candidate.link_decision == "LINKED":
-            if not candidate.linked_strength or not (candidate.linked_strength_reason or "").strip():
-                raise ValueError(f"Missing link strength or reason for candidate {number}.")
-        else:
-            assessment["linked_strength"] = None
-            assessment["linked_strength_reason"] = None
+        assessment["incident_evidence__citation_strength"] = decision.incident_evidence__citation_strength
         assessments[number] = assessment
     if len(assessments) != candidate_count:
         raise ValueError("The model omitted a candidate assessment.")

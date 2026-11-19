@@ -1,19 +1,20 @@
 from pathlib import Path
 
 import yaml
+from filelock import FileLock
 from openpyxl import load_workbook
 
 from app.linking.decision import request_decision
 from app.linking.fields import ENGAGEMENT_FIELDS, INCIDENT_FIELDS
 from app.linking.read_cases import read_cases
-from app.linking.save_results import append_headers, save_results, write_assessment
+from app.linking.save_results import OUTPUT_COLUMNS, assessment_values, load_progress, save_progress, unfinished_cases
 from app.linking.llm_connection import llm_connection
 
 
 ROOT = Path(__file__).resolve().parent
 PROMPT_FILE = ROOT / "app/linking/prompt.yml"
 CANDIDATES = ROOT / "data/output/engagement_candidates.xlsx"
-OUTPUT = ROOT / "data/output/engagement_links.xlsx"
+OUTPUT = ROOT / "data/output/engagement_links.csv"
 
 
 def read_prompt(path):
@@ -35,41 +36,56 @@ def read_definitions():
     return definitions
 
 
-def link_incidents(sheet, cases, first_column, definitions, prompt):
+def link_incidents(cases, rows, headers, output_file):
     if not cases:
         return
 
+    definitions = read_definitions()
+    prompt = read_prompt(PROMPT_FILE)
+    source_width = len(headers)
+    output_headers = [*headers, *OUTPUT_COLUMNS]
     with llm_connection() as (client, model, temperature):
-        for incident, candidates in cases.values():
+        for incident, candidates in cases:
             records = list(candidates.values())
             engagements = [engagement for engagement, _ in records]
             assessments = request_decision(client, model, incident, engagements, definitions, prompt, temperature)
-            for number, (_, rows) in enumerate(records, start=1):
-                write_assessment(sheet, rows, first_column, assessments[number])
+            for number, (_, row_numbers) in enumerate(records, start=1):
+                values = assessment_values(assessments[number])
+                for row_number in row_numbers:
+                    rows[row_number - 2][source_width:] = values
+            save_progress(output_file, output_headers, rows)
+            print(f"Saved incident {incident['incident_id']} to {output_file}.", flush=True)
 
 
-def main(candidates_file=CANDIDATES, output_file=OUTPUT):
-    if Path(candidates_file).resolve() == Path(output_file).resolve():
-        raise ValueError("Choose an output file different from the candidate workbook.")
+def read_candidates(candidates_file):
     workbook = load_workbook(candidates_file)
     try:
         sheet = workbook.active
-        for other in list(workbook.worksheets):
-            if other is not sheet:
-                workbook.remove(other)
-        sheet.title = "Linking decisions"
-        headers = [cell.value for cell in sheet[1]]
+        headers = [str(cell.value) if cell.value is not None else "" for cell in sheet[1]]
         if not all(headers) or len(headers) != len(set(headers)):
             raise ValueError("The candidate sheet contains blank or duplicate headers.")
+        if any(name in headers for name in OUTPUT_COLUMNS):
+            raise ValueError("The candidate sheet already contains a linking output column.")
         cases = read_cases(sheet, headers)
-        first_column = append_headers(sheet, headers)
-        definitions = read_definitions()
-        prompt = read_prompt(PROMPT_FILE)
-        link_incidents(sheet, cases, first_column, definitions, prompt)
-        save_results(workbook, output_file)
+        source_rows = []
+        for values in sheet.iter_rows(min_row=2, values_only=True):
+            source_rows.append(["" if value is None else str(value) for value in values])
+        return headers, source_rows, cases
     finally:
         workbook.close()
-    print(f"Saved engagement decisions for {len(cases)} incidents to {output_file}.")
+
+
+def main(candidates_file=CANDIDATES, output_file=OUTPUT):
+    output_file = Path(output_file)
+    if output_file.suffix.lower() != ".csv" or output_file.resolve() == Path(candidates_file).resolve():
+        raise ValueError("Choose a CSV output different from the input workbook.")
+    headers, source_rows, cases = read_candidates(candidates_file)
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+    with FileLock(str(output_file) + ".lock", timeout=0):
+        rows = load_progress(output_file, headers, source_rows)
+        remaining = unfinished_cases(cases, rows, len(headers))
+        link_incidents(remaining, rows, headers, output_file)
+    print(f"Complete: {len(cases)} incidents in {output_file}.")
 
 
 if __name__ == "__main__":
