@@ -66,7 +66,7 @@ The response contains an `assessments` list and one shared `incident_evidence_ci
 
 ## Decision rules
 
-Every candidate receives one of four labels. The prompt first asks for a service-level assessment of each pair, then identifies the strongest confirmed link within that incident.
+Every candidate receives one of four labels. The prompt first asks for a service-level assessment of each pair, then identifies the strongest confirmed link within that incident. [One-sentence rules](rules.md)
 
 | Label | Required interpretation |
 | --- | --- |

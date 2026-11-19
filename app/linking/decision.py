@@ -24,19 +24,25 @@ def number_engagements(engagements):
 
 
 def assessments_by_number(decision, candidate_count):
+    # Match results by candidate number, regardless of response order.
     assessments = {}
     for candidate in decision.assessments:
         number = candidate.candidate_number
+        # Reject unknown numbers and duplicate assessments.
         if not 1 <= number <= candidate_count or number in assessments:
             raise ValueError(f"Unknown or repeated candidate_number {number}.")
         assessment = candidate.model_dump()
+        # Share the incident-level evidence strength across its engagements.
         assessment["incident_evidence_citation_strength"] = decision.incident_evidence_citation_strength
         assessments[number] = assessment
+    # Require an assessment for every supplied candidate.
     if len(assessments) != candidate_count:
         raise ValueError("The model omitted a candidate assessment.")
     labels = [assessment["link_decision"] for assessment in assessments.values()]
+    # Allow at most one strongest candidate per incident.
     if labels.count("STRONGEST_LINKED") > 1:
         raise ValueError("Multiple candidates were marked STRONGEST_LINKED for one incident.")
+    # The sole confirmed link must carry the strongest label.
     if labels.count("LINKED") == 1 and "STRONGEST_LINKED" not in labels:
         raise ValueError("The sole confirmed link must be marked STRONGEST_LINKED.")
     return assessments
