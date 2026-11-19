@@ -3,7 +3,6 @@ import json
 from .fields import INCIDENT_FIELDS, ENGAGEMENT_FIELDS
 from .llm_connection import request_temperature
 from .schema import LinkingDecision
-from .validation import check_decision
 
 
 def source_values(row, fields):
@@ -42,4 +41,4 @@ def request_decision(client, model, incident, engagements, definitions, prompt):
     message = response.choices[0].message
     if message.refusal or message.parsed is None:
         raise ValueError("The model returned no structured linking decision.")
-    return check_decision(message.parsed, incident, engagements)
+    return message.parsed.model_dump()

@@ -40,8 +40,13 @@ def save_results(path, results):
         if len(candidates) > 3:
             raise ValueError("An incident can have at most three ranked candidates.")
         for candidate in candidates:
-            values.append(candidate["engagement_id"])
-            values.append(candidate["rationale"])
+            eng_id = candidate["engagement_id"]
+            rationale = (
+                f"{candidate['rationale']}\n"
+                f'INC.{candidate["incident_field"]}: "{candidate["incident_quote"]}"\n'
+                f'{eng_id}.{candidate["engagement_field"]}: "{candidate["engagement_quote"]}"'
+            )
+            values.extend([eng_id, rationale])
 
         for column, value in enumerate(values, start=1):
             if isinstance(value, str) and len(value) > 32767:

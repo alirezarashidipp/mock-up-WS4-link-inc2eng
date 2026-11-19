@@ -29,7 +29,7 @@ For each incident and engagement, the finder tries full equality (`EXACT`) first
 - `match_type` records `EXACT` or `PARTIAL`.
 - `found_name_in_source` contains the full original ENG_ALL value from the matched column.
 
-An incident can have several candidate rows or none. Each run replaces the previous workbook. For cleaning rules, column priorities, and the module layout, see [Current state](docs/current-state.md).
+An incident can have several candidate rows or none. Each run replaces the previous workbook. The stage guide covers cleaning rules, column priorities and worked examples. [Finding guide](docs/finding/README.md)
 
 ## Link incidents to engagements
 
@@ -37,6 +37,6 @@ An incident can have several candidate rows or none. Each run replaces the previ
 2. Configure the existing OpenAI or Azure OpenAI connection in the project-root `.env`. See [.env.example](.env.example) for the provider settings and `LLM_TEMPERATURE`. Use a model or deployment that supports structured outputs and the configured temperature.
 3. Run `.\.venv\Scripts\python.exe linking.py` from the project root.
 
-The two lists in [fields.py](app/linking/fields.py) name every source column sent to the LLM. Edit [prompt.yml](app/linking/prompt.yml) to change the linking instructions. The [Pydantic schema](app/linking/schema.py) defines the structured response fields.
+The linking guide explains which fields reach the model, how it ranks candidates and what each decision means. [Linking guide](docs/linking/README.md)
 
 Open `data/output/engagement_links.xlsx`. Each eligible incident gets one row. Each of the three rank slots has an engagement ID and a rationale with a field and excerpt from each source. The top three limit applies to the response. All candidate engagements for the incident go into the comparison. The separate `selected_engagement_id` holds the first-ranked ID only when the model can choose one. Read `decision_reason` alongside the overall `confidence` tag to understand a selection or abstention. An incident with zero candidates gets a local `NO_CANDIDATES` row.
