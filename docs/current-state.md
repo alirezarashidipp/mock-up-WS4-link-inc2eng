@@ -10,28 +10,32 @@ The stage-one steps are visible in `finding.py`. Their implementations are in `a
 | Select eligible incidents | `select_incidents.py` |
 | Clean incident supplier names | `clean_incidents.py` |
 | Load and apply the YAML name replacements | `replace_names.py` |
-| Read supplier records | `read_suppliers.py` |
-| Clean the five supplier name fields | `clean_suppliers.py` |
+| Read engagement records from `ENG_ALL` | `read_suppliers.py` |
+| Clean the two third-party name fields | `clean_suppliers.py` |
 | Find matching candidate records | `match_rows.py` |
 | Save the Excel workbook | `save_excel.py` |
 
-Both input readers use `read_files.py` for table parsing. Both cleaners use the same name-cleaning rules.
+Both input readers use `read_files.py` for table parsing.
 
-Place CLASSIFIED_INCIDENTS.csv and one RAW_SPS_SUPPLIER_DETAIL.csv or RAW_SPS_SUPPLIER_DETAIL.xlsx in data/input. CSV inputs use UTF-8 and commas. Excel input uses the active worksheet. The first row contains headers, including the literal ENG ID in supplier detail.
+Place `CLASSIFIED_INCIDENTS.csv` and exactly one of `ENG_ALL.csv` or `ENG_ALL.xlsx` in `data/input/`. CSV inputs use UTF-8 and commas. Excel input uses the active worksheet. The incident file has headers in its first row. The engagement file accepts headers in the first row or field names down the first column with one engagement in each subsequent column. It requires `ENGAGEMENT_ID` and both third-party name fields. All additional source fields, including engagement name, description and management hierarchy, are copied into each matching output row.
 
-Only SUPPLIER incidents with a usable classified_supplier_name enter matching. The cleaner lowercases names from both files and replaces the separators listed in `SYMBOLS_TO_REMOVE` with spaces, including commas, brackets, dashes, slashes and double quotes. It removes the whole words `the`, `and`, `a`, `an`, `on`, `plc`, `limited`, `llc`, `company` and `solutions`, then collapses whitespace. Whole-name aliases from the YAML file apply to the cleaned names.
+Only `SUPPLIER` incidents with a usable `classified_supplier_name` enter matching. Incident names use three lists in `app/finding/clean_incidents.py`.
 
-Each incident is compared with each supplier row. Exact equality takes priority within that row. Otherwise the incident name must occur within a supplier field. The first matching column in the relevant priority list wins. Different supplier rows can produce both exact and partial candidates for one incident. Unmatched incidents produce no candidate rows.
+- `SPECIAL_CHARACTERS` become spaces before word removal.
+- `STOP_WORDS` removes whole words such as `the`, `of`, `holding`, `partners`, `llm` and `solutions`.
+- `LEGAL_SUFFIXES` removes corporate designators such as `plc`, `llc`, `corporation`, `inc` and `ltd`. They are matched as whole words anywhere in the name, including forms with a trailing period such as `Inc.`.
 
-| Priority | `EXACT` column | `PARTIAL` column |
-| --- | --- | --- |
-| 1 | `SUPPLIER_TRADING_NAME` | `SUPPLIER_ALTERNATE_NAME` |
-| 2 | `SUPPLIER_NORMALISED_BUSINESS_NAME` | `SUPPLIER_NAME` |
-| 3 | `SUPPLIER_ALTERNATE_NAME` | `SUPPLIER_NORMALISED_BUSINESS_NAME` |
-| 4 | `SUPPLIER_NAME` | `SUPPLIER_DNB_MATCHED_BUSINESS_NAME` |
-| 5 | `SUPPLIER_DNB_MATCHED_BUSINESS_NAME` | `SUPPLIER_TRADING_NAME` |
+The incident cleaner lowercases the text and collapses whitespace. Whole-name YAML replacements apply after cleaning. For example, the cleaned incident name `gcp` maps to `google cloud platform`. An incident whose name becomes empty produces no candidates.
 
-For example, `The North-Star (Solutions); PLC` and `North Star Limited` both become `north star` and match exactly. The YAML maps the whole cleaned value `gcp` to `google cloud platform`. A value such as `gcp uk` keeps its original words. Partial matching uses a literal substring, so `BT` can match `DEBT`. Typo tolerance and word-boundary matching are possible future changes.
+Engagement names use lowercase text with all whitespace removed for comparison. Punctuation, legal suffixes and words such as `the` remain part of the engagement name. The incident search name is also compared without whitespace. For example, incident `PingIdentity` matches engagement `Ping Identity` exactly. The normalized field can have the older spelling `THIRD_PARTY_NORMALISED_NAME`. If both spellings exist, the finder uses `THIRD_PARTY_NORMALIZED_NAME` and preserves all source fields in the workbook.
+
+| Check order for one engagement | First field | Second field | Output label |
+| --- | --- | --- | --- |
+| Full equality | `THIRD_PARTY_NAME` | Normalized field | `EXACT` |
+| Incident name occurs literally anywhere in the engagement name | Normalized field | `THIRD_PARTY_NAME` | `PARTIAL` |
+| Fuzzy comparison | Normalized field | `THIRD_PARTY_NAME` | `PARTIAL` |
+
+Fuzzy comparisons use the `fuzzy-match` library and normalized Levenshtein similarity. The compact incident name must contain at least five characters. A score of at least 0.72 against a contiguous sequence of engagement-name words qualifies as a partial match. Literal substring checks apply even to shorter names, so `BT` can match `DEBT`. The first successful check produces one row for that incident and engagement. Different engagements can produce both exact and partial candidates for one incident.
 
 `data/output/engagement_candidates.xlsx` contains both original records followed by `standardised_supplier_name`, `matched_supplier_column` and `match_type`. When a supplier header overlaps an incident header, the supplier header gets an `ENG.` prefix. Each run replaces the previous workbook. The INC and ENG dictionaries in `config/` document the input fields. ENG definitions are provisional descriptions based on the supplied headers.
 

@@ -4,4 +4,4 @@ Keep the stage-one entry point in `finding.py` at the project root. Use plain fu
 
 Preserve original source values in the candidate workbook. Change supplier exceptions in `config/supplier_aliases.yml`. Keep code, definitions, documentation and output labels in English. Update `docs/current-state.md` when behaviour changes.
 
-The implemented workflow ends at the Excel candidate workbook. Both inputs share the cleaning rules in `app/finding/clean_incidents.py`. Match types and column priorities live in `app/finding/match_rows.py`. Keep the README run instructions aligned with `finding.py`. Check changes with a small pair of synthetic inputs and inspect the resulting workbook.
+The implemented workflow ends at the Excel candidate workbook. Incident names follow the rules in `app/finding/clean_incidents.py` and use whole-name YAML aliases. For engagement name comparisons, lowercase the source text and remove whitespace. Match types and column priorities live in `app/finding/match_rows.py`. Keep the README run instructions aligned with `finding.py`. Check changes with a small pair of synthetic inputs and inspect the resulting workbook.

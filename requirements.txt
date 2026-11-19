@@ -1,2 +1,4 @@
 PyYAML
 openpyxl
+fuzzy-match==0.0.1
+numpy

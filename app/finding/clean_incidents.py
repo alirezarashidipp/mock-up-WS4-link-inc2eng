@@ -1,18 +1,24 @@
-SYMBOLS_TO_REMOVE = [
+STOP_WORDS = {
+    "a", "an", "and", "of", "on", "the",
+    "holding", "holdings", "llm", "partners", "solutions",
+}
+
+LEGAL_SUFFIXES = {
+    "company", "corp", "corporation", "inc", "incorporated",
+    "limited", "llc", "llp", "ltd", "plc",
+}
+
+SPECIAL_CHARACTERS = [
     ";", ",", ":", "؛", "،",
     "(", ")", "[", "]", "{", "}",
     "-", "–", "—", "_",
     "/", "\\", "|",
     '"', "“", "”",
 ]
-WORDS_TO_REMOVE = {
-    "the", "and", "a", "an", "on",
-    "plc", "limited", "llc", "company", "solutions",
-}
 
 
 def remove_symbols(name):
-    for symbol in SYMBOLS_TO_REMOVE:
+    for symbol in SPECIAL_CHARACTERS:
         name = name.replace(symbol, " ")
     return name
 
@@ -20,8 +26,9 @@ def remove_symbols(name):
 def remove_words(name):
     kept_words = []
     for word in name.split():
-        if word not in WORDS_TO_REMOVE:
-            kept_words.append(word)
+        if word in STOP_WORDS or word.rstrip(".") in LEGAL_SUFFIXES:
+            continue
+        kept_words.append(word)
     return " ".join(kept_words)
 
 

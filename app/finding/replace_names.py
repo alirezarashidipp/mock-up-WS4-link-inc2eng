@@ -19,13 +19,3 @@ def replace_incident_names(incidents, replacements):
         search_name = replacements.get(name, name)
         updated.append((row, search_name))
     return updated
-
-
-def replace_supplier_names(suppliers, replacements):
-    updated = []
-    for row, names in suppliers:
-        search_names = {}
-        for column, name in names.items():
-            search_names[column] = replacements.get(name, name)
-        updated.append((row, search_names))
-    return updated

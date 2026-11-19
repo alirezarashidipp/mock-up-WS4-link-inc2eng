@@ -5,7 +5,7 @@ from app.finding.clean_suppliers import clean_suppliers
 from app.finding.match_rows import find_candidates
 from app.finding.read_incidents import read_incidents
 from app.finding.read_suppliers import read_suppliers
-from app.finding.replace_names import read_replacements, replace_incident_names, replace_supplier_names
+from app.finding.replace_names import read_replacements, replace_incident_names
 from app.finding.save_excel import save_candidates
 from app.finding.select_incidents import select_incidents
 
@@ -25,8 +25,7 @@ def main(input_dir=INPUT, output_file=OUTPUT):
     incidents = replace_incident_names(incidents, replacements)
 
     supplier_headers, suppliers = read_suppliers(input_dir)
-    suppliers = clean_suppliers(suppliers)
-    suppliers = replace_supplier_names(suppliers, replacements)
+    suppliers = clean_suppliers(suppliers, supplier_headers)
 
     candidates = find_candidates(incidents, suppliers)
     save_candidates(output_file, incident_headers, supplier_headers, candidates)

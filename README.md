@@ -5,8 +5,8 @@ This Python demo takes incidents already classified as supplier-caused and finds
 ## Run the finder
 
 1. Put `CLASSIFIED_INCIDENTS.csv` in `data/input/`. It must contain the headers `class` and `classified_supplier_name`.
-2. In the same folder, supply exactly one of `RAW_SPS_SUPPLIER_DETAIL.csv` or `RAW_SPS_SUPPLIER_DETAIL.xlsx`. It must contain `ENG ID`, `SUPPLIER_TRADING_NAME`, `SUPPLIER_NORMALISED_BUSINESS_NAME`, `SUPPLIER_ALTERNATE_NAME`, `SUPPLIER_NAME`, and `SUPPLIER_DNB_MATCHED_BUSINESS_NAME`.
-3. Use comma-separated UTF-8 CSV files, or put the supplier table on the active Excel worksheet. The first row holds the column headers.
+2. In the same folder, supply either `ENG_ALL.csv` or `ENG_ALL.xlsx`. The required fields are `ENGAGEMENT_ID`, `THIRD_PARTY_NAME` and `THIRD_PARTY_NORMALIZED_NAME`. The older spelling `THIRD_PARTY_NORMALISED_NAME` is also accepted. If both spellings exist, the finder searches the Z spelling. Other engagement fields are carried into the output.
+3. Use UTF-8, comma-separated CSV files. The incident file has headers in the first row. For `ENG_ALL`, field names can run across the first row (one engagement per row) or down the first column (one engagement per column). For Excel, use the active worksheet.
 
 From the project root on Windows, run:
 
@@ -20,9 +20,9 @@ For subsequent runs, use the last command.
 
 ## Read the results
 
-Open `data/output/engagement_candidates.xlsx`. The finder selects incidents whose `class` is exactly `SUPPLIER` and whose supplier name contains usable text after cleaning. It cleans the five supplier name fields with the same rules and applies whole-name replacements from [supplier_aliases.yml](config/supplier_aliases.yml).
+Open `data/output/engagement_candidates.xlsx`. The finder selects incidents whose `class` is exactly `SUPPLIER` and whose supplier name contains usable text after cleaning. Incident names use the configured whole-name aliases. Engagement name fields use only lowercase text and whitespace removal for comparison. The workbook retains the original source values.
 
-For each incident and supplier row, the finder tries full equality (`EXACT`) first, then checks whether the incident name occurs anywhere within a supplier field (`PARTIAL`). Each matching pair contributes one workbook row with the original columns from both files and three additional fields:
+For each incident and engagement, the finder tries full equality (`EXACT`) first. It then checks for a literal substring and finally tries fuzzy matching for eligible names. Both partial checks try the normalized field first and produce `PARTIAL`. Each matching pair contributes one workbook row with the original columns from both files and three additional fields.
 
 - `standardised_supplier_name` holds the incident name used in the comparison.
 - `matched_supplier_column` identifies the first supplier column that matched in priority order.

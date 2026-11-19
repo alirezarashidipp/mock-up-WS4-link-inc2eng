@@ -1,22 +1,24 @@
 definitions:
-  ENG ID: Identifier of the engagement associated with this supplier record.
-  SUPPLIER_ALIAS_NAME: Alias recorded for the supplier.
-  SUPPLIER_ALTERNATE_NAME: Alternative business name for the supplier.
-  SUPPLIER_TYPE_NAME: Supplier type recorded in the source system.
-  SUPPLIER_REGISTERED_ADDRESS: Registered address of the supplier.
-  SUPPLIER_STATE_NAME: State or region recorded for the supplier.
-  SUPPLIER_NAME: Supplier name as stored in the source system, potentially including an identifier.
-  SUPPLIER_ID_TEXT: Source supplier identifier represented as text.
-  SUPPLIER_CREATION_DATE: Date the supplier record was created.
-  SUPPLIER_STATUS_NAME: Status of the supplier record.
-  SUPPLIER_SOURCE_SYSTEM_NAME: System that supplied the record.
-  SUPPLIER_NORMALISED_BUSINESS_NAME: Standardised business name in the source record.
-  SUPPLIER_KEY_TEXT: Source key for the supplier record.
-  SUPPLIER_DNB_MATCHED_BUSINESS_NAME: Business name matched through Dun & Bradstreet.
-  SUPPLIER_APS_FUSION_SUPPLIER_NUMBERS: Supplier numbers associated with APS Fusion.
-  SOURCE_SUPPLIER_CATEGORY_NAME: Supplier category assigned by the source.
-  SUPPLIER_REGISTERED_COUNTRY_TERRITORY_NAME: Registered country or territory of the supplier.
-  SUPPLIER_DESC: Description recorded for the supplier.
-  SUPPLIER_TRADING_NAME: Name under which the supplier trades.
-  SUPPLIER_REMEDIATION_STATUS_NAME: Remediation status recorded for the supplier.
-  REPORT_DATE: Date associated with the source report.
+  ENGAGEMENT_ID: Identifier assigned to the engagement.
+  ENGAGEMENT_NAME: Name of the engagement.
+  ENGAGEMENT_DESCRIPTION_TEXT: Description of the work or services covered by the engagement.
+  THIRD_PARTY_ID: Identifier assigned to the third party in the engagement record.
+  COUPA_THIRD_PARTY_ID: Identifier of the third party in Coupa.
+  THIRD_PARTY_NAME: Third-party name recorded for the engagement.
+  # ENG_ALL also accepts THIRD_PARTY_NORMALISED_NAME as the source header.
+  THIRD_PARTY_NORMALIZED_NAME: Standardised name of the third party.
+  THIRD_PARTY_TYPE_NAME: Type of third party recorded for the engagement.
+  THIRD_PARTY_STATUS_NAME: Status of the third party.
+  SERVICE_CATEGORY_L1_NAME: Name of the level-one service category.
+  PRIMARY_BENEFICIARY_COUNTRY_TERRITORY_ISO_NAME: Country or territory name recorded for the primary beneficiary.
+  MANAGING_BGI_NAME: Name of the managing BGI for the engagement.
+  MANAGING_BGI_L1_ID: Identifier at level one of the managing BGI hierarchy.
+  MANAGING_BGI_L1_NAME: Name at level one of the managing BGI hierarchy.
+  MANAGING_BGI_L2_ID: Identifier at level two of the managing BGI hierarchy.
+  MANAGING_BGI_L2_NAME: Name at level two of the managing BGI hierarchy.
+  MANAGING_BGI_L3_ID: Identifier at level three of the managing BGI hierarchy.
+  MANAGING_BGI_L3_NAME: Name at level three of the managing BGI hierarchy.
+  MANAGING_BGI_L4_ID: Identifier at level four of the managing BGI hierarchy.
+  MANAGING_BGI_L4_NAME: Name at level four of the managing BGI hierarchy.
+  MANAGING_BGI_L5_ID: Identifier at level five of the managing BGI hierarchy.
+  MANAGING_BGI_L5_NAME: Name at level five of the managing BGI hierarchy.
