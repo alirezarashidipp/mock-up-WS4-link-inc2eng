@@ -6,8 +6,8 @@ Both stages run from the project root and write to `data/output/`.
 
 | Stage guide | Command | Output | One row per |
 | --- | --- | --- | --- |
-| [Finding candidates](app/finding/docs/README.md) | `python finding.py` | `engagement_candidates.xlsx` | Incident and matching engagement record |
-| [Linking incidents](app/linking/docs/README.md) | `python linking.py` | `engagement_links.csv` | Source row in the candidate workbook |
+| [Finding candidates](app/finding/docs/README.md) | `python finding.py` | `engagement_candidates.csv` | Incident and matching engagement record |
+| [Linking incidents](app/linking/docs/README.md) | `python linking.py` | `engagement_links.csv` | Source row in the candidate file |
 
 ## Run the finder
 
@@ -27,20 +27,20 @@ For subsequent runs, use the last command.
 
 ## Read the results
 
-Open `data/output/engagement_candidates.xlsx`. The finder selects incidents whose `class` is exactly `SUPPLIER` and whose supplier name contains usable text after cleaning. Incident names use the configured whole-name aliases. Engagement name fields use only lowercase text and whitespace removal for comparison. The workbook retains the original source values.
+Open `data/output/engagement_candidates.csv`. The finder selects incidents whose `class` is exactly `SUPPLIER` and whose supplier name contains usable text after cleaning. Incident names use the configured whole-name aliases. Engagement name fields use only lowercase text and whitespace removal for comparison. The candidate file retains the original source values.
 
-For each incident and engagement, the finder tries full equality (`EXACT`) first. It then checks for a literal substring and finally tries fuzzy matching for eligible names. Both partial checks try the normalized field first and produce `PARTIAL`. Each matching pair contributes one workbook row with the original columns from both files and four additional fields.
+For each incident and engagement, the finder tries full equality (`EXACT`) first. It then checks for a literal substring and finally tries fuzzy matching for eligible names. Both partial checks try the normalized field first and produce `PARTIAL`. Each matching pair contributes one candidate file row with the original columns from both files and four additional fields.
 
 - `standardised_supplier_name` holds the incident name used in the comparison.
 - `matched_supplier_column` identifies the first supplier column that matched in priority order.
 - `match_type` records `EXACT` or `PARTIAL`.
 - `found_name_in_source` contains the full original ENG_ALL value from the matched column.
 
-An incident can have several candidate rows or none. Each run replaces the previous workbook. The stage guide covers cleaning rules, column priorities and worked examples. [Finding guide](app/finding/docs/README.md)
+An incident can have several candidate rows or none. Each run replaces the previous candidate file. The stage guide covers cleaning rules, column priorities and worked examples. [Finding guide](app/finding/docs/README.md)
 
 ## Link incidents to engagements
 
-1. Place the Finding output at `data/output/engagement_candidates.xlsx`. This workbook supplies both the incident details and engagement records. Linking groups its rows by `incident_id`.
+1. Place the Finding output at `data/output/engagement_candidates.csv`. This candidate file supplies both the incident details and engagement records. Linking groups its rows by `incident_id`.
 2. Configure the existing OpenAI or Azure OpenAI connection in the project-root `.env`. See [.env.example](.env.example) for the provider settings and `LLM_TEMPERATURE`. Use a model or deployment that supports structured outputs and the configured temperature.
 3. Run `.\.venv\Scripts\python.exe linking.py` from the project root.
 

@@ -1,3 +1,4 @@
+import csv
 from pathlib import Path
 
 import yaml
@@ -13,7 +14,7 @@ from app.linking.llm_connection import llm_connection
 
 ROOT = Path(__file__).resolve().parent
 PROMPT_FILE = ROOT / "app/linking/prompt.yml"
-CANDIDATES = ROOT / "data/output/engagement_candidates.xlsx"
+CANDIDATES = ROOT / "data/output/engagement_candidates.csv"
 OUTPUT = ROOT / "data/output/engagement_links.csv"
 
 
@@ -58,27 +59,36 @@ def link_incidents(cases, rows, headers, output_file):
 
 
 def read_candidates(candidates_file):
-    workbook = load_workbook(candidates_file)
-    try:
-        sheet = workbook.active
-        headers = [str(cell.value) if cell.value is not None else "" for cell in sheet[1]]
-        if not all(headers) or len(headers) != len(set(headers)):
-            raise ValueError("The candidate sheet contains blank or duplicate headers.")
-        if any(name in headers for name in OUTPUT_COLUMNS):
-            raise ValueError("The candidate sheet already contains a linking output column.")
-        cases = read_cases(sheet, headers)
-        source_rows = []
-        for values in sheet.iter_rows(min_row=2, values_only=True):
-            source_rows.append(["" if value is None else str(value) for value in values])
-        return headers, source_rows, cases
-    finally:
-        workbook.close()
+    path = Path(candidates_file)
+    if path.suffix.lower() == ".csv":
+        csv.field_size_limit(max(csv.field_size_limit(), 2**31 - 1))
+        with path.open(encoding="utf-8-sig", newline="") as stream:
+            reader = csv.reader(stream, strict=True)
+            headers = next(reader, [])
+            rows = [row or [""] * len(headers) for row in reader]
+        if any(len(row) != len(headers) for row in rows):
+            raise ValueError("A candidate CSV row has the wrong number of fields.")
+    else:
+        workbook = load_workbook(path)
+        try:
+            sheet = workbook.active
+            headers = [str(cell.value) if cell.value is not None else "" for cell in sheet[1]]
+            rows = list(sheet.iter_rows(min_row=2, values_only=True))
+        finally:
+            workbook.close()
+    if not headers or not all(headers) or len(headers) != len(set(headers)):
+        raise ValueError("The candidate file contains blank or duplicate headers.")
+    if any(name in headers for name in OUTPUT_COLUMNS):
+        raise ValueError("The candidate file already contains a linking output column.")
+    cases = read_cases(rows, headers)
+    source_rows = [["" if v is None else str(v) for v in row] for row in rows]
+    return headers, source_rows, cases
 
 
 def main(candidates_file=CANDIDATES, output_file=OUTPUT):
     output_file = Path(output_file)
     if output_file.suffix.lower() != ".csv" or output_file.resolve() == Path(candidates_file).resolve():
-        raise ValueError("Choose a CSV output different from the input workbook.")
+        raise ValueError("Choose a CSV output different from the candidate file.")
     headers, source_rows, cases = read_candidates(candidates_file)
     output_file.parent.mkdir(parents=True, exist_ok=True)
     with FileLock(str(output_file) + ".lock", timeout=0):

@@ -17,7 +17,7 @@ The entry point performs these steps in order.
 3. Clean incident supplier names and apply whole-name aliases.
 4. Read ENG_ALL and prepare its two supplier-name comparison fields.
 5. Compare each selected incident with every engagement record.
-6. Save the candidate workbook and print the selected-incident and candidate-row counts.
+6. Save the candidate file and print the selected-incident and candidate-row counts.
 
 Paths are relative to the project root in `finding.py`. Python callers can supply `input_dir` and `output_file` to `main()`. The alias path remains the project configuration path. [Entry point](../../../finding.py)
 
@@ -75,12 +75,12 @@ An alias is applied once when the entire cleaned name equals its cleaned key. `G
 
 For `THIRD_PARTY_NORMALISED_NAME` and `THIRD_PARTY_NAME`, Finding lowercases the value and removes all whitespace. Empty values become empty strings. Punctuation, legal suffixes and other words remain in these comparison values. The original source row is retained alongside them. [Reference cleaning](../clean_suppliers.py)
 
-At matching time, whitespace is also removed from the incident's cleaned, replaced name. This creates the comparison query. The workbook's `standardised_supplier_name` retains the readable spaces from the earlier step.
+At matching time, whitespace is also removed from the incident's cleaned, replaced name. This creates the comparison query. The candidate file's `standardised_supplier_name` retains the readable spaces from the earlier step.
 
 | Value | Example |
 | --- | --- |
 | Incident source name | `The North-Star (Solutions); PLC` |
-| Cleaned name saved in the workbook | `north star` |
+| Cleaned name saved in the candidate file | `north star` |
 | Query used for comparisons | `northstar` |
 | Engagement source name | `North Star` |
 | Engagement comparison value | `northstar` |
@@ -103,11 +103,11 @@ The `fuzzy-match` library supplies normalized Levenshtein similarity. Its score 
 
 The fuzzy pass requires a query of at least five characters and similarity of at least `0.72`. It lowercases the original reference field, splits it into whitespace-delimited words, and concatenates contiguous sequences of those words for comparison. Length bounds skip sequences that cannot reach the threshold. The first passing sequence establishes the match.
 
-For example, `microsfot` compared with `microsoft` has a score of approximately `0.778`. It can match the first word of `Microsoft Ltd`. Fuzzy scores are used internally and the workbook records `PARTIAL`. [12 worked scenarios](matching.html)
+For example, `microsfot` compared with `microsoft` has a score of approximately `0.778`. It can match the first word of `Microsoft Ltd`. Fuzzy scores are used internally and the candidate file records `PARTIAL`. [12 worked scenarios](matching.html)
 
-## Output workbook
+## Output candidate file
 
-The output is `data/output/engagement_candidates.xlsx`, with one worksheet named `Engagement candidates`. The header row is frozen. Columns appear in this order.
+The output is `data/output/engagement_candidates.csv`, a UTF-8 CSV with a BOM and a header row. Columns appear in this order.
 
 1. All incident columns in input order.
 2. All engagement columns in input order.
@@ -120,9 +120,9 @@ The output is `data/output/engagement_candidates.xlsx`, with one worksheet named
 | `match_type` | `EXACT` or `PARTIAL` |
 | `found_name_in_source` | Full original value from that engagement field |
 
-An engagement header receives the prefix `ENG.` when it conflicts with an incident header or one of the four added names. Any remaining combined-header conflict is rejected. Text values are explicitly written as Excel strings. Source values are preserved as loaded, including cached Excel formula values.
+An engagement header receives the prefix `ENG.` when it conflicts with an incident header or one of the four added names. Any remaining combined-header conflict is rejected. CSV quoting preserves commas, quotes and embedded newlines. Source values are preserved as loaded, including cached Excel formula values.
 
-Rows follow incident input order, then engagement input order. Repeated source records produce repeated candidates. A pair matching both fields contributes one row. Incidents with zero matches contribute zero rows, and a run with zero candidates produces a header-only workbook. Each run replaces the output workbook. [Excel writer](../save_excel.py)
+Rows follow incident input order, then engagement input order. Repeated source records produce repeated candidates. A pair matching both fields contributes one row. Incidents with zero matches contribute zero rows, and a run with zero candidates produces a header-only candidate file. Each run replaces the output candidate file. [CSV writer](../save_csv.py)
 
 ## Interpreting results and limitations
 
@@ -148,7 +148,7 @@ The implementation loads tables and candidates into memory and scans all inciden
 | Wrong number of fields | Check comma quoting and CSV row width. |
 | Zero candidates | Check the exact `SUPPLIER` class, cleaned name, aliases and reference fields. |
 | Combined-column conflict | Resolve duplicate names remaining after the `ENG.` prefix. |
-| Workbook save failure | Close programs holding the output open and check the path. |
+| Candidate file save failure | Close programs holding the output open and check the path. |
 
 | Module | Responsibility |
 | --- | --- |
@@ -157,4 +157,4 @@ The implementation loads tables and candidates into memory and scans all inciden
 | [clean_incidents.py](../clean_incidents.py), [replace_names.py](../replace_names.py) | Incident cleaning and aliases |
 | [clean_suppliers.py](../clean_suppliers.py) | Reference comparison values |
 | [match_rows.py](../match_rows.py) | Match order, thresholds and candidate collection |
-| [save_excel.py](../save_excel.py) | Output headers and workbook writing |
+| [save_csv.py](../save_csv.py) | Output headers and candidate file writing |

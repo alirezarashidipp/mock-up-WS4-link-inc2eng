@@ -6,7 +6,7 @@ Linking determines which of a known supplier's engagements cover the services in
 
 | Resource | Location | Purpose |
 | --- | --- | --- |
-| Candidate workbook | `data/output/engagement_candidates.xlsx` | Sole source of incident and engagement records |
+| Candidate file | `data/output/engagement_candidates.csv` | Sole source of incident and engagement records |
 | System prompt | `app/linking/prompt.yml` | Evidence rules and decision instructions |
 | Response schema | `app/linking/schema.py` | Required response structure, labels and field definitions |
 | Incident definitions | `config/incident_columns.yml` | Descriptions of the 76 incident fields |
@@ -14,17 +14,17 @@ Linking determines which of a known supplier's engagements cover the services in
 | Connection settings | Project-root `.env` | Provider, credentials, model or deployment, and temperature |
 | Result | `data/output/engagement_links.csv` | Original source rows and columns followed by ten assessment columns |
 
-Paths above are relative to the project root. The entry point resolves its default paths from its own location. The [input field reference](input-fields.md) gives the complete field definitions and workbook requirements. [Finding documentation](../../finding/docs/README.md)
+Paths above are relative to the project root. The entry point resolves its default paths from its own location. The [input field reference](input-fields.md) gives the complete field definitions and candidate file requirements. [Finding documentation](../../finding/docs/README.md)
 
 ## Run Linking
 
-Install the project's dependencies using the setup commands in the root README, place the candidate workbook at the input location, and configure the provider. Run this command from the project root. [Project setup](../../../README.md)
+Install the project's dependencies using the setup commands in the root README, place the candidate file at the input location, and configure the provider. Run this command from the project root. [Project setup](../../../README.md)
 
 ```powershell
 .\.venv\Scripts\python.exe linking.py
 ```
 
-The input uses the active worksheet. Headers must be populated and unique, and must exclude the ten assessment column names. Each populated row requires an `incident_id` and an `ENGAGEMENT_ID`. A header-only workbook produces a header-only CSV with zero model calls.
+The default input is a UTF-8 CSV. Headers must be populated and unique, and must exclude the ten assessment column names. Each populated row requires an `incident_id` and an `ENGAGEMENT_ID`. A header-only candidate file produces a header-only CSV with zero model calls.
 
 The GPT-5.1 configuration requested for this project uses these settings, alongside the API key in the local environment.
 
@@ -45,7 +45,7 @@ Azure uses `EnvironmentCredential` and a bearer-token provider for Microsoft Ent
 
 ## Processing one incident
 
-1. Read the active worksheet and retain the original rows and their order.
+1. Read the candidate CSV and retain the original rows and their order.
 2. Group rows by the recorded `incident_id`. The 76 selected incident values must agree across all rows of that incident.
 3. Within each incident, group engagement rows with identical values across the 22 selected engagement fields. Assign each distinct record a `candidate_number`, starting at 1.
 4. Restore saved progress and select incidents whose decisions are still blank.
@@ -54,11 +54,11 @@ Azure uses `EnvironmentCredential` and a bearer-token provider for Microsoft Ent
 7. Map each assessment back to every original row associated with that candidate. Repeat the incident evidence strength across those rows.
 8. Save the complete CSV snapshot before requesting the next incident.
 
-Requests run sequentially. All candidates for an incident travel together. Identical engagement inputs share one assessment even when their rows are separated in the workbook. An engagement ID repeated with different selected field values produces separate candidates. The local `candidate_number` associates a response with its source rows when the model changes response order. [Reader](../read_cases.py) · [Request and response mapping](../decision.py)
+Requests run sequentially. All candidates for an incident travel together. Identical engagement inputs share one assessment even when their rows are separated in the candidate file. An engagement ID repeated with different selected field values produces separate candidates. The local `candidate_number` associates a response with its source rows when the model changes response order. [Reader](../read_cases.py) · [Request and response mapping](../decision.py)
 
 ## What the model receives and returns
 
-The request contains `field_definitions`, one `incident` object and an `engagements` list. The incident has 76 selected workbook fields. Each engagement has 22 selected source fields plus its local `candidate_number`. `incident_id` and `ENGAGEMENT_ID` are included in those fields. Missing or whitespace-only values become JSON `null`; other values retain their source content.
+The request contains `field_definitions`, one `incident` object and an `engagements` list. The incident has 76 selected candidate file fields. Each engagement has 22 selected source fields plus its local `candidate_number`. `incident_id` and `ENGAGEMENT_ID` are included in those fields. Missing or whitespace-only values become JSON `null`; other values retain their source content.
 
 The OpenAI SDK call uses `chat.completions.parse` with `response_format=LinkingDecision`, the configured model and temperature, and `store=False`.
 
@@ -77,7 +77,7 @@ The goal is to identify which engagements cover the service involved in this inc
 
 Select the sole LINKED candidate. With several confirmed links, select up to three only when each has specific evidence placing it among the strongest. If no leaders can be established, or more than three are indistinguishable at the top, select none. Preserve source order and never use it to break ties. Record `YES` in `strongest_link` and explain the choice in `strongest_link_rational`. Both columns are blank on every other candidate and when there are no confirmed links. Duplicate source rows for the selected candidate carry the same flag and sentence.
 
-Finding's `classified_supplier_name` and `standardised_supplier_name` explain how the candidate was selected. For example, a workbook can record Azure as the classified name and microsoft as its search name. Accept this alias. A missing name or different spelling alone does not establish an identity conflict. A confirmed link requires service evidence from both sides. Eliminating other candidates provides no evidence for the remaining one.
+Finding's `classified_supplier_name` and `standardised_supplier_name` explain how the candidate was selected. For example, a candidate file can record Azure as the classified name and microsoft as its search name. Accept this alias. A missing name or different spelling alone does not establish an identity conflict. A confirmed link requires service evidence from both sides. Eliminating other candidates provides no evidence for the remaining one.
 
 ## Evidence, strength and confidence
 
@@ -169,7 +169,7 @@ Pydantic enforces required fields, allowed labels, types and extra-field rejecti
 
 All source rows and snapshots are held in memory, and each incident save rewrites the full CSV. Request size grows with all fields and candidates for an incident, so model context and output limits constrain the usable case size. The provider's eligible retry handles request failures; semantic validation errors stop the run.
 
-Synthetic and mocked-response checks establish workbook mapping, serialization and recovery behavior. Live provider tests establish provider compatibility and observed responses. Decision quality requires reviewed cases and explicit accuracy measurements.
+Synthetic and mocked-response checks establish candidate file mapping, serialization and recovery behavior. Live provider tests establish provider compatibility and observed responses. Decision quality requires reviewed cases and explicit accuracy measurements.
 
 ## Implementation map
 

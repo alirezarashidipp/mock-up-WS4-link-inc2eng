@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Finding candidate engagements</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #faf8f3; color: #182e30; font: 1.12rem/1.55 "Source Sans 3", Arial, sans-serif; }
+    main { max-width: 54rem; margin: auto; padding: 3rem clamp(1.25rem, 5vw, 4rem); }
+    h1, h2 { font-family: "Source Serif 4", Georgia, serif; line-height: 1.12; }
+    h1 { font-size: clamp(2.5rem, 6vw, 4.3rem); margin: 0; }
+    h2 { font-size: 1.7rem; margin: 0 0 .7rem; }
+    p { margin: .45rem 0; }
+    header { border-bottom: 3px solid #226d62; padding-bottom: 1.6rem; }
+    header p { margin-top: 1rem; }
+    ol { padding-left: 2.1rem; }
+    li { padding: 1.25rem 0 1.25rem .5rem; border-bottom: 1px solid #c8d1ca; }
+    li::marker { color: #23675e; font-weight: bold; }
+    code { font: .92em "IBM Plex Mono", Consolas, monospace; overflow-wrap: anywhere; }
+    .example { background: #e4efea; border-left: 3px solid #267362; padding: .75rem 1rem; margin-top: .75rem; }
+    a { color: #18594f; }
+    @media print { main { padding: 0; } li { break-inside: avoid; } }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Finding candidate engagements</h1>
+    <p>One supplier can deliver several services. Finding uses the supplier name on an incident to retrieve engagement records for the next stage to assess.</p>
+  </header>
+  <ol>
+    <li>
+      <h2>Select supplier incidents</h2>
+      <p>Read <code>CLASSIFIED_INCIDENTS.csv</code>. Keep rows whose class is exactly <code>SUPPLIER</code> and whose classified supplier name contains text.</p>
+      <p class="example">Example incident name &nbsp; <code>The Azure-Solutions (Ltd.)</code></p>
+    </li>
+    <li>
+      <h2>Clean the incident name</h2>
+      <p>Lowercase the text and replace configured <strong>special characters</strong>, such as hyphens and parentheses, with spaces. This keeps adjacent words separate.</p>
+      <p>Remove whole words in the <strong>stop-word list</strong>, such as <code>the</code> and <code>solutions</code>, and <strong>legal terms</strong>, such as <code>Ltd.</code> and <code>Inc.</code>. Skip names that become empty.</p>
+      <p class="example"><code>The Azure-Solutions (Ltd.)</code> → <code>the azure solutions ltd.</code> → <strong>azure</strong></p>
+    </li>
+    <li>
+      <h2>Apply a whole-name YAML alias</h2>
+      <p>Finding reads <code>config/supplier_aliases.yml</code> with PyYAML. When the entire cleaned name matches an entry, it uses the replacement as the search name. This lets supplier exceptions be maintained in one file.</p>
+      <p class="example">YAML entry &nbsp; <code>azure: Microsoft</code><br>Search name &nbsp; <strong>microsoft</strong></p>
+    </li>
+    <li>
+      <h2>Compare the two engagement name fields</h2>
+      <p>Read <code>ENG_ALL.csv</code> or <code>ENG_ALL.xlsx</code>. For each incident–engagement pair, compare lowercase names without whitespace. Try equality first, then look for the search name inside either engagement name field. If both checks fail, try fuzzy matching.</p>
+      <p class="example"><code>microsoft</code> against <code>Microsoft</code> → <strong>EXACT</strong><br>Against <code>Microsoft UK Ltd</code>, if neither field is an exact match → <strong>PARTIAL</strong></p>
+    </li>
+    <li>
+      <h2>Recover spelling errors with fuzzy matching</h2>
+      <p>The Python library <code>fuzzy-match==0.0.1</code> provides <strong>Levenshtein similarity</strong>. It scores how many character insertions, deletions or substitutions separate two names, relative to the longer name. This gives a repeatable way to catch typos.</p>
+      <p>For a search name of at least <strong>5 characters</strong>, Finding compares it with adjacent whole words in the engagement field. A score of <strong>0.72 or higher</strong> qualifies.</p>
+      <p class="example">Separate typo example &nbsp; <code>Microsfot</code> against the first word of <code>Microsoft Ltd</code> → two edits in nine letters → <strong>0.778 · PARTIAL</strong></p>
+      <p>A lower threshold catches more typos but can also admit unrelated suppliers with similar names. A higher threshold can miss genuine spelling variants.</p>
+    </li>
+    <li>
+      <h2>Save the candidates</h2>
+      <p><code>engagement_candidates.csv</code> contains one row per matching pair. It preserves both source records and adds the search name, matched column, match type and original matched value. An incident with no matches contributes no rows.</p>
+      <p class="example">Three matching engagement records → three candidate rows. Linking then assesses which services were involved.</p>
+    </li>
+  </ol>
+  <a href="matching.html">Explore 12 worked matching examples →</a>
+</main>
+</body>
+</html>

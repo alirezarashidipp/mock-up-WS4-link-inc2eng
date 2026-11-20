@@ -1,8 +1,8 @@
 # Linking input contract and field reference
 
-Linking reads the active worksheet of `data/output/engagement_candidates.xlsx`. This workbook supplies the incident and engagement records for every model request. The project-root `linking.py` groups rows and preserves their positions for output. [Entry point](../../../linking.py) · [Workbook reader](../read_cases.py) · [Linking guide](README.md)
+Linking reads `data/output/engagement_candidates.csv`. This candidate file supplies the incident and engagement records for every model request. The project-root `linking.py` groups rows and preserves their positions for output. [Entry point](../../../linking.py) · [Candidate file reader](../read_cases.py) · [Linking guide](README.md)
 
-## From workbook rows to one request
+## From candidate file rows to one request
 
 One request contains three JSON properties.
 
@@ -16,7 +16,7 @@ The exact field lists live in `INCIDENT_FIELDS` and `ENGAGEMENT_FIELDS`. They de
 
 `ENGAGEMENT_ID`, `THIRD_PARTY_ID`, `COUPA_THIRD_PARTY_ID` and the selected BGI IDs are included in the model input. The model returns the supplied `candidate_number` to identify each assessment. The application uses that number to attach the result to the corresponding source rows.
 
-## Workbook requirements
+## Candidate file requirements
 
 | Requirement | Current handling |
 | --- | --- |
@@ -26,11 +26,11 @@ The exact field lists live in `INCIDENT_FIELDS` and `ENGAGEMENT_FIELDS`. They de
 | Additional selected fields | A missing column contributes `null` to the request for that field. |
 | Linking output columns in the input | The reader rejects an input header that already equals one of the ten assessment column names. |
 | Empty rows | A row containing only empty strings or empty cells is skipped for model processing and retained in the source-position CSV output. |
-| Header-only workbook | Produces a header-only CSV and makes zero model requests when the required headers are present. |
+| Header-only candidate file | Produces a header-only CSV and makes zero model requests when the required headers are present. |
 
 Header names and identifiers are used as recorded. The linking reader performs no supplier-name cleaning or alias replacement. The field names below are case-sensitive. [Input reader and checks](../../../linking.py)
 
-When a supplier header collides with an incident header or a Finding detail column, Finding prefixes the supplier header with `ENG.`. For every selected engagement field, Linking first checks for `ENG.<field>` and uses that header when present. Otherwise it uses the unprefixed field. The model receives the canonical name, such as `ENGAGEMENT_NAME`, even when the workbook column is `ENG.ENGAGEMENT_NAME`. [Finding output headers](../../finding/save_excel.py) · [Engagement column selection](../read_cases.py)
+When a supplier header collides with an incident header or a Finding detail column, Finding prefixes the supplier header with `ENG.`. For every selected engagement field, Linking first checks for `ENG.<field>` and uses that header when present. Otherwise it uses the unprefixed field. The model receives the canonical name, such as `ENGAGEMENT_NAME`, even when the candidate file column is `ENG.ENGAGEMENT_NAME`. [Finding output headers](../../finding/save_csv.py) · [Engagement column selection](../read_cases.py)
 
 ## Grouping, duplicates and source positions
 
@@ -44,11 +44,11 @@ For example, suppose rows 2 and 5 contain the same incident and identical engage
 
 ## Values sent to the model
 
-Missing cells, absent optional columns and strings containing only whitespace become JSON `null`. Nonblank source strings keep their original content. Numbers and booleans retain their JSON types. Other cell objects, including dates and datetimes, are serialized using their string representation.
+Missing cells, absent optional columns and strings containing only whitespace become JSON `null`. Nonblank source strings keep their original content. CSV fields, including identifiers with leading zeros, are read as text.
 
-The request includes `classified_supplier_name` and Finding's `standardised_supplier_name` as supplier selection context. The CSV also retains `class`, `matched_supplier_column`, `match_type` and `found_name_in_source` from the workbook.
+The request includes `classified_supplier_name` and Finding's `standardised_supplier_name` as supplier selection context. The CSV also retains `class`, `matched_supplier_column`, `match_type` and `found_name_in_source` from the candidate file.
 
-The request includes the raw source fields `supplier_name` and `unlisted_supplier_name`. It omits upstream classification outputs such as `recorded_cause`, `supplier_product_or_service` and `supplier_name_confidence` because they are outside `INCIDENT_FIELDS`. The CSV retains all original workbook columns, including any extra fields. [Request field selection](../decision.py) · [CSV preservation](../../../linking.py)
+The request includes the raw source fields `supplier_name` and `unlisted_supplier_name`. It omits upstream classification outputs such as `recorded_cause`, `supplier_product_or_service` and `supplier_name_confidence` because they are outside `INCIDENT_FIELDS`. The CSV retains all original candidate file columns, including any extra fields. [Request field selection](../decision.py) · [CSV preservation](../../../linking.py)
 
 ## Incident fields
 

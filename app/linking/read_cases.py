@@ -1,17 +1,17 @@
 from .fields import ENGAGEMENT_FIELDS, INCIDENT_FIELDS
 
 
-def read_cases(sheet, headers):
+def read_cases(rows, headers):
     engagement_columns = {}
     for field in ENGAGEMENT_FIELDS:
         prefixed = "ENG." + field
         engagement_columns[field] = prefixed if prefixed in headers else field
 
     if "incident_id" not in headers or engagement_columns["ENGAGEMENT_ID"] not in headers:
-        raise ValueError("The candidate sheet requires incident_id and ENGAGEMENT_ID.")
+        raise ValueError("The candidate file requires incident_id and ENGAGEMENT_ID.")
 
     cases = {}
-    for row_number, values in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
+    for row_number, values in enumerate(rows, start=2):
         if all(value is None or value == "" for value in values):
             continue
         row = dict(zip(headers, values))

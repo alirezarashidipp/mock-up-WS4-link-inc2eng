@@ -2,18 +2,11 @@ from openpyxl import Workbook
 from openpyxl.cell import WriteOnlyCell
 
 
-def save_candidates(path, incident_headers, supplier_headers, candidates):
-    details = ["standardised_supplier_name", "matched_supplier_column", "match_type", "found_name_in_source"]
-    headers = list(incident_headers)
-    for column in supplier_headers:
-        label = column
-        if column in incident_headers or column in details:
-            label = "ENG." + column
-        headers.append(label)
-    headers.extend(details)
-    if len(set(headers)) != len(headers):
-        raise ValueError("The combined output contains conflicting column names.")
+from .save_csv import candidate_headers
 
+
+def save_candidates(path, incident_headers, supplier_headers, candidates):
+    headers = candidate_headers(incident_headers, supplier_headers)
     workbook = Workbook(write_only=True)
     sheet = workbook.create_sheet("Engagement candidates")
     sheet.freeze_panes = "A2"
