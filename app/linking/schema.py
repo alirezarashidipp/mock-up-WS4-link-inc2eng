@@ -38,6 +38,13 @@ class EngagementAssessment(BaseModel):
     )
 
 
+class StrongestLink(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    candidate_number: int = Field(ge=1)
+    strongest_link_rational: str = Field(min_length=1, description="One English sentence citing the decisive evidence for this candidate.")
+
+
 class LinkingDecision(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
 
@@ -53,9 +60,6 @@ class LinkingDecision(BaseModel):
     assessments: list[EngagementAssessment] = Field(
         description="One independent assessment for every supplied candidate_number."
     )
-    strongest_candidate_number: int | None = Field(
-        description="Local number of the selected LINKED candidate. Null when no candidate is LINKED."
-    )
-    strongest_link_rational: str | None = Field(
-        description="One English sentence explaining the selection, including the tie-break when the evidence is equal. Use null when no candidate is LINKED."
+    strongest_links: list[StrongestLink] = Field(
+        max_length=3, description="Selected LINKED candidates with their reasons. Use [] when no selection is justified."
     )

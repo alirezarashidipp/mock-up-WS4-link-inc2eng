@@ -27,8 +27,6 @@ def assessments_by_number(decision, candidate_count):
     # Match results by candidate number, regardless of response order.
     assessments = {}
     confirmed = set()
-    strongest = decision.strongest_candidate_number
-    reason = decision.strongest_link_rational
     for candidate in decision.assessments:
         number = candidate.candidate_number
         # Reject unknown numbers and duplicate assessments.
@@ -46,21 +44,22 @@ def assessments_by_number(decision, candidate_count):
         assessment = candidate.model_dump()
         # Share the incident-level evidence strength across its engagements.
         assessment["incident_evidence_citation_strength"] = decision.incident_evidence_citation_strength
-        assessment["strongest_link"] = "YES" if number == strongest else None
-        assessment["strongest_link_rational"] = reason if number == strongest else None
+        assessment["strongest_link"] = None
+        assessment["strongest_link_rational"] = None
         assessments[number] = assessment
     # Require an assessment for every supplied candidate.
     if len(assessments) != candidate_count:
         raise ValueError("The model omitted a candidate assessment.")
-    if strongest is not None:
-        if strongest not in confirmed:
-            raise ValueError("The strongest candidate must have a LINKED decision.")
-        if not reason or not reason.strip():
-            raise ValueError("The strongest candidate requires a strongest_link_rational.")
-    elif reason is not None:
-        raise ValueError("strongest_link_rational must be null when no candidate is selected.")
-    elif confirmed:
-        raise ValueError("Select one strongest candidate among the LINKED candidates.")
+    for selection in decision.strongest_links:
+        number = selection.candidate_number
+        if number not in confirmed or assessments[number]["strongest_link"]:
+            raise ValueError("Each strongest selection must identify a distinct LINKED candidate.")
+        if not selection.strongest_link_rational.strip():
+            raise ValueError("Each strongest candidate requires a selection reason.")
+        assessments[number]["strongest_link"] = "YES"
+        assessments[number]["strongest_link_rational"] = selection.strongest_link_rational
+    if len(confirmed) == 1 and not decision.strongest_links:
+        raise ValueError("Select the sole LINKED candidate as strongest.")
     return assessments
 
 

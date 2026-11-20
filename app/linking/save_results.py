@@ -105,6 +105,6 @@ def unfinished_cases(cases, rows, source_width):
             unfinished.append((incident, candidates))
         elif len(decisions) != len(candidates):
             raise ValueError(f"Partial saved incident {incident['incident_id']}.")
-        elif "LINKED" in decisions and strongest_count != 1:
+        elif strongest_count > 3 or (decisions.count("LINKED") == 1 and strongest_count == 0):
             raise ValueError(f"Invalid strongest link selection for incident {incident['incident_id']}.")
     return unfinished

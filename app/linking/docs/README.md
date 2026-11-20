@@ -62,7 +62,7 @@ The request contains `field_definitions`, one `incident` object and an `engageme
 
 The OpenAI SDK call uses `chat.completions.parse` with `response_format=LinkingDecision`, the configured model and temperature, and `store=False`.
 
-The response contains one shared `incident_evidence_citation_strength` and an `assessments` list. Each assessment has its candidate number, citations, engagement evidence strength, decision, rationale and confidence with its explanation. The final two response fields give the selected `strongest_candidate_number` and a one-sentence `strongest_link_rational`. Both are `null` when there is no selection. The writer maps the response to the ten CSV columns below. [Response schema](../schema.py)
+The response contains one shared `incident_evidence_citation_strength` and an `assessments` list. Each assessment has its candidate number, citations, engagement evidence strength, decision, rationale and confidence with its explanation. The final `strongest_links` list contains each selected candidate number and its individual one-sentence reason. An empty list means no selection. The writer maps the response to the ten CSV columns below. [Response schema](../schema.py)
 
 ## Decision rules
 
@@ -75,7 +75,7 @@ The goal is to identify which engagements cover the service involved in this inc
 | `NOT_LINKED` | The records exclude the candidate, for example through a clearly different supplier or incompatible service scope. |
 | `INSUFFICIENT_EVIDENCE` | The available information is too sparse or generic to establish a concrete service fit or exclude the candidate. A supplier-name match alone falls here. |
 
-When any candidates are `LINKED`, select exactly one of them. Choose the sole confirmed link or the one with the strongest evidence of involvement. If the leaders have equally strong evidence, choose the lowest local `candidate_number` among those leaders. Record `YES` in `strongest_link` and explain the choice in `strongest_link_rational`. In a tie, the sentence identifies the equal support and the ordering used. Both columns are blank on every other candidate and when there are no confirmed links. Duplicate source rows for the selected candidate carry the same flag and sentence.
+Select the sole LINKED candidate. With several confirmed links, select up to three only when each has specific evidence placing it among the strongest. If no leaders can be established, or more than three are indistinguishable at the top, select none. Preserve source order and never use it to break ties. Record `YES` in `strongest_link` and explain the choice in `strongest_link_rational`. Both columns are blank on every other candidate and when there are no confirmed links. Duplicate source rows for the selected candidate carry the same flag and sentence.
 
 Finding's `classified_supplier_name` and `standardised_supplier_name` explain how the candidate was selected. For example, a workbook can record Azure as the classified name and microsoft as its search name. Accept this alias. A missing name or different spelling alone does not establish an identity conflict. A confirmed link requires service evidence from both sides. Eliminating other candidates provides no evidence for the remaining one.
 
@@ -124,7 +124,7 @@ These synthetic cases illustrate the decision rules.
 | Recorded situation | Candidate result |
 | --- | --- |
 | Incident names a failed London router. Only one candidate's scope covers that London router service. | `LINKED` with `YES`. The selection reason can read “This is the sole confirmed engagement covering the failed London router.” |
-| Investigation records failures in hosting and connectivity. Candidates 2 and 4 have equally strong support, ahead of candidate 1. | If all three are `LINKED`, only candidate 2 receives `YES`. Its sentence can read “Candidates 2 and 4 have equally strong support for the affected services, so candidate 2 was selected by its lower local number.” |
+| Investigation records failures in hosting and connectivity. Candidates 2 and 4 have equally strong support, ahead of candidate 1. | All three remain `LINKED`. Candidates 2 and 4 each receive `YES` and their own evidence-based reason. |
 | Both records support two engagements, with one directly identifying the affected component and the other having broader supported scope. | Both are `LINKED`. Only the candidate that identifies the component receives `YES`, with a sentence explaining that distinction. |
 | The affected service matches two regional engagements, but the incident's region is unknown. | Both can be `POSSIBLY_LINKED`. Their rationales identify the missing region. |
 | The incident is explicitly limited to London and the engagement's service coverage explicitly excludes London. | `NOT_LINKED` with a scope-conflict explanation. |
