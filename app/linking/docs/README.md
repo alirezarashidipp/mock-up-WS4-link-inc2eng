@@ -12,7 +12,7 @@ Linking determines which of a known supplier's engagements cover the services in
 | Incident definitions | `config/incident_columns.yml` | Descriptions of the 76 incident fields |
 | Engagement definitions | `config/engagement_columns.yml` | Descriptions of the 22 engagement fields |
 | Connection settings | Project-root `.env` | Provider, credentials, model or deployment, and temperature |
-| Result | `data/output/engagement_links.csv` | Original source rows and columns followed by ten assessment columns |
+| Result | `data/output/engagement_links.csv` | Original source rows and columns followed by eight assessment columns |
 
 Paths above are relative to the project root. The entry point resolves its default paths from its own location. The [input field reference](input-fields.md) gives the complete field definitions and candidate file requirements. [Finding documentation](../../finding/docs/README.md)
 
@@ -24,7 +24,7 @@ Install the project's dependencies using the setup commands in the root README, 
 .\.venv\Scripts\python.exe linking.py
 ```
 
-The default input is a UTF-8 CSV. Headers must be populated and unique, and must exclude the ten assessment column names. Each populated row requires an `incident_id` and an `ENGAGEMENT_ID`. A header-only candidate file produces a header-only CSV with zero model calls.
+The default input is a UTF-8 CSV. Headers must be populated and unique, and must exclude the eight assessment column names. Each populated row requires an `incident_id` and an `ENGAGEMENT_ID`. A header-only candidate file produces a header-only CSV with zero model calls.
 
 The GPT-5.1 configuration requested for this project uses these settings, alongside the API key in the local environment.
 
@@ -50,7 +50,7 @@ Azure uses `EnvironmentCredential` and a bearer-token provider for Microsoft Ent
 3. Within each incident, group engagement rows with identical values across the 22 selected engagement fields. Assign each distinct record a `candidate_number`, starting at 1.
 4. Restore saved progress and select incidents whose decisions are still blank.
 5. Send one incident with all its distinct engagement candidates, field definitions and the system prompt.
-6. Parse the response into `LinkingDecision`. Check that every candidate number appears exactly once and that the strongest-link rules hold.
+6. Parse the response into `LinkingDecision`. Check that every candidate number appears exactly once.
 7. Map each assessment back to every original row associated with that candidate. Repeat the incident evidence strength across those rows.
 8. Save the complete CSV snapshot before requesting the next incident.
 
@@ -62,11 +62,11 @@ The request contains `field_definitions`, one `incident` object and an `engageme
 
 The OpenAI SDK call uses `chat.completions.parse` with `response_format=LinkingDecision`, the configured model and temperature, and `store=False`.
 
-The response contains one shared `incident_evidence_citation_strength` and an `assessments` list. Each assessment has its candidate number, citations, engagement evidence strength, decision, rationale and confidence with its explanation. The final `strongest_links` list contains each selected candidate number and its individual one-sentence reason. An empty list means no selection. The writer maps the response to the ten CSV columns below. [Response schema](../schema.py)
+The response contains one shared `incident_evidence_citation_strength` and an `assessments` list. Each assessment has its candidate number, citations, engagement evidence strength, decision, rationale and confidence with its explanation. The writer maps the response to the eight CSV columns below. [Response schema](../schema.py)
 
 ## Decision rules
 
-The goal is to identify which engagements cover the service involved in this incident. For each candidate, gather evidence from the incident and that engagement, rate the quality of the two sources, then assign one decision and explain it. After all decisions, compare the confirmed candidates for strongest-link selection. [One-sentence rules](rules.md)
+The goal is to identify which engagements cover the service involved in this incident. For each candidate, gather evidence from the incident and that engagement, rate the quality of the two sources, then assign one decision and explain it. [One-sentence rules](rules.md)
 
 | Label | Required interpretation |
 | --- | --- |
@@ -75,7 +75,6 @@ The goal is to identify which engagements cover the service involved in this inc
 | `NOT_LINKED` | The records exclude the candidate, for example through a clearly different supplier or incompatible service scope. |
 | `INSUFFICIENT_EVIDENCE` | The available information is too sparse or generic to establish a concrete service fit or exclude the candidate. A supplier-name match alone falls here. |
 
-Select the sole LINKED candidate. With several confirmed links, select up to three only when each has specific evidence placing it among the strongest. If no leaders can be established, or more than three are indistinguishable at the top, select none. Preserve source order and never use it to break ties. Record `YES` in `strongest_link` and explain the choice in `strongest_link_rational`. Both columns are blank on every other candidate and when there are no confirmed links. Duplicate source rows for the selected candidate carry the same flag and sentence.
 
 Finding's `classified_supplier_name` and `standardised_supplier_name` explain how the candidate was selected. For example, a candidate file can record Azure as the classified name and microsoft as its search name. Accept this alias. A missing name or different spelling alone does not establish an identity conflict. A confirmed link requires service evidence from both sides. Eliminating other candidates provides no evidence for the remaining one.
 
@@ -112,8 +111,6 @@ The comma-separated CSV uses UTF-8 with a BOM. It preserves every source row, co
 | `link_decision` | One of the four decision labels |
 | `link_decision_confidence_reason` | One sentence explaining the confidence level for this decision |
 | `link_decision_confidence` | `LOW`, `MEDIUM` or `HIGH` |
-| `strongest_link` | `YES` for the selected `LINKED` candidate, otherwise blank |
-| `strongest_link_rational` | One sentence explaining why that candidate was selected, otherwise blank |
 
 Citation lists become newline-separated `column_name: verbatim excerpt` values in one CSV field. An empty list becomes `[]`. The CSV writer quotes values containing commas, quotes or newlines. Read the file with a CSV parser to retain these fields correctly. The underlying CSV retains source IDs as text; spreadsheet import settings determine whether a viewer interprets them as numbers. [CSV writer](../save_results.py)
 
@@ -123,9 +120,9 @@ These synthetic cases illustrate the decision rules.
 
 | Recorded situation | Candidate result |
 | --- | --- |
-| Incident names a failed London router. Only one candidate's scope covers that London router service. | `LINKED` with `YES`. The selection reason can read “This is the sole confirmed engagement covering the failed London router.” |
-| Investigation records failures in hosting and connectivity. Candidates 2 and 4 have equally strong support, ahead of candidate 1. | All three remain `LINKED`. Candidates 2 and 4 each receive `YES` and their own evidence-based reason. |
-| Both records support two engagements, with one directly identifying the affected component and the other having broader supported scope. | Both are `LINKED`. Only the candidate that identifies the component receives `YES`, with a sentence explaining that distinction. |
+| Incident names a failed London router. Only one candidate's scope covers that London router service. | `LINKED` because the engagement covers the failed router. |
+| Investigation records failures in hosting and connectivity. Candidates 2 and 4 have equally strong support, ahead of candidate 1. | All three remain `LINKED` if each has defensible supporting evidence. |
+| Both records support two engagements, with one directly identifying the affected component and the other having broader supported scope. | Both are `LINKED`. |
 | The affected service matches two regional engagements, but the incident's region is unknown. | Both can be `POSSIBLY_LINKED`. Their rationales identify the missing region. |
 | The incident is explicitly limited to London and the engagement's service coverage explicitly excludes London. | `NOT_LINKED` with a scope-conflict explanation. |
 | The only common fact is the supplier name, and the incident gives no usable service clue. | `INSUFFICIENT_EVIDENCE`. |
@@ -136,7 +133,7 @@ On a fresh run, the CSV starts with all source rows and blank assessment columns
 
 If a request or validation fails, saved incidents remain available and the run stops. If an external program prevents final replacement, a completed `.pending` snapshot remains available for recovery. A response interrupted before it reaches disk must be requested again.
 
-Rerun the same command with the same input to continue. Progress restoration checks the header names, row count, source values and source order. It recovers a pending snapshot before sending another request and skips completed incidents in the current format. To reassess work saved in an older eight-column CSV that contains decisions, choose a fresh output path. Those decisions used a different meaning for `NOT_LINKED`.
+Rerun the same command with the same input to continue. Progress restoration checks the header names, row count, source values and source order. It recovers a pending snapshot before sending another request and skips completed incidents in the current format. Ten-column checkpoints are resumed after removing the two ranking columns. To reassess work saved in a pre-ranking eight-column CSV that contains decisions, choose a fresh output path. Those decisions used a different meaning for `NOT_LINKED`.
 
 A `.lock` file coordinates access to the output path through `FileLock`. A second process attempting to use the same output fails immediately while the lock is held.
 
@@ -160,12 +157,11 @@ main(output_file=Path("data/output/engagement_links_review.csv"))
 | Azure authentication failed | Check tenant, application credentials, token scope and network configuration. |
 | Model returned no structured decision | Inspect the provider failure or refusal and rerun when resolved. |
 | Unknown, repeated or omitted candidate number | The response cannot be mapped completely. The current incident remains pending. |
-| Selected strongest candidate is outside the confirmed links, or selection and reason disagree | The response violates the strongest-selection rule. The current incident remains pending. |
 | Saved headers, row count or source values differ | Restore the matching input, or use a separate output for the intended dataset. |
 | Partial saved incident or invalid saved assessment | Restore a consistent checkpoint or start a separate output. |
 | Output replacement fails | Close the program holding the CSV, then rerun to recover the pending snapshot. |
 
-Pydantic enforces required fields, allowed labels, types and extra-field rejection. The code checks candidate coverage and that the strongest selection refers to a confirmed link. Citation fidelity and the correctness of semantic decisions require reviewing the source evidence.
+Pydantic enforces required fields, allowed labels, types and extra-field rejection. The code checks candidate coverage. Citation fidelity and the correctness of semantic decisions require reviewing the source evidence.
 
 All source rows and snapshots are held in memory, and each incident save rewrites the full CSV. Request size grows with all fields and candidates for an incident, so model context and output limits constrain the usable case size. The provider's eligible retry handles request failures; semantic validation errors stop the run.
 
@@ -182,4 +178,4 @@ Synthetic and mocked-response checks establish candidate file mapping, serializa
 | [decision.py](../decision.py) | Build requests, parse responses and map candidate assessments |
 | [schema.py](../schema.py) | Define structured response fields and rubrics |
 | [prompt.yml](../prompt.yml) | Define evidence and decision instructions |
-| [save_results.py](../save_results.py) | Flatten assessments, save snapshots and restore CSV progress |
+| [save_results.py](../save_results.py) | Flateight assessments, save snapshots and restore CSV progress |

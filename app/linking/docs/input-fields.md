@@ -24,7 +24,7 @@ The exact field lists live in `INCIDENT_FIELDS` and `ENGAGEMENT_FIELDS`. They de
 | `incident_id` header | Required. Each populated source row must have a nonblank value. |
 | `ENGAGEMENT_ID` or `ENG.ENGAGEMENT_ID` header | Required. Each populated source row must have a nonblank value in the selected engagement ID column. |
 | Additional selected fields | A missing column contributes `null` to the request for that field. |
-| Linking output columns in the input | The reader rejects an input header that already equals one of the ten assessment column names. |
+| Linking output columns in the input | The reader rejects an input header that already equals one of the eight assessment column names. |
 | Empty rows | A row containing only empty strings or empty cells is skipped for model processing and retained in the source-position CSV output. |
 | Header-only candidate file | Produces a header-only CSV and makes zero model requests when the required headers are present. |
 

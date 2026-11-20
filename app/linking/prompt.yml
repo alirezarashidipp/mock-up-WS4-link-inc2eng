@@ -13,11 +13,9 @@ system_prompt: |-
   2. Rate the quality of the collected information using the schema's strength rubric. Rate the incident once and each engagement's own scope separately. A detailed unrelated engagement can have STRONG source evidence.
 
   3. Decide each pair on its own evidence. Rejecting the other candidates supplies no evidence for the remaining candidate.
+  Apply the first supported rule in this order. An unresolved contradiction or a missing fact alone cannot establish an exclusion.
+  - NOT_LINKED requires evidence ruling out the connection, such as an explicitly incompatible scope or a clearly different supplier even when services match.
   - LINKED requires defensible evidence from both sides. Cite the affected service in the incident and scope in this engagement that supports its involvement. Resolve any material conflict before confirming. Several candidates can qualify.
   - POSSIBLY_LINKED requires a concrete service fit, plausible involvement and a specific material gap or unresolved conflict that prevents confirmation. For example, the service matches but the affected region is unknown for a region-specific contract.
-  - NOT_LINKED requires evidence ruling out the connection, such as an explicitly incompatible scope or a clearly different supplier even when services match.
   - INSUFFICIENT_EVIDENCE applies when the records neither establish a concrete service fit nor rule the engagement out. A supplier name alone belongs here.
   Write a one- or two-sentence link_rationale identifying the decisive facts, exclusion or missing detail. For POSSIBLY_LINKED identify both the fit and the barrier. Give the confidence level and a one-sentence reason for confidence in the chosen label.
-
-  4. After all pair decisions are final, select the sole LINKED candidate. With several confirmed links, select up to three only when each has specific evidence placing it among the strongest. If no leaders can be established, or more than three are indistinguishable at the top, select none. Preserve source order and never use it to break ties.
-  Return strongest_links as a list of distinct candidate numbers and their individual one-sentence selection reasons. Use [] when there is no selection. Each selected candidate keeps its LINKED decision and receives YES in strongest_link.

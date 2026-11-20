@@ -8,7 +8,6 @@ OUTPUT_COLUMNS = (
     "incident_evidence_citation", "engagement_evidence_citation",
     "incident_evidence_citation_strength", "engagement_evidence_citation_strength",
     "link_rationale", "link_decision", "link_decision_confidence_reason", "link_decision_confidence",
-    "strongest_link", "strongest_link_rational",
 )
 
 
@@ -51,9 +50,8 @@ def load_progress(path, headers, source_rows):
         return rows
 
     csv.field_size_limit(max(csv.field_size_limit(), 2**31 - 1))
-    previous_columns = OUTPUT_COLUMNS[:-2]
-    previous_headers = [*headers, *previous_columns]
-    legacy_columns = [name.replace("_citation_strength", "__citation_strength") for name in previous_columns]
+    previous_headers = [*output_headers, "strongest_link", "strongest_link_rational"]
+    legacy_columns = [name.replace("_citation_strength", "__citation_strength") for name in OUTPUT_COLUMNS]
     legacy_headers = [*headers, *legacy_columns]
     with saved.open(encoding="utf-8-sig", newline="") as stream:
         reader = csv.reader(stream, strict=True)
@@ -66,12 +64,13 @@ def load_progress(path, headers, source_rows):
     for number, (row, source) in enumerate(zip(rows, source_rows), start=2):
         if len(row) != len(saved_headers) or row[:len(headers)] != source:
             raise ValueError(f"{saved.name} differs from the candidate workbook at row {number}.")
-    if saved_headers != output_headers:
+    if saved_headers == previous_headers:
+        rows = [row[:-2] for row in rows]
+        save_progress(path, output_headers, rows)
+    elif saved_headers == legacy_headers:
         if any(any(row[len(headers):]) for row in rows):
             raise ValueError(f"{saved.name} contains assessments under the previous decision rules. "
                              "Use a separate output CSV to assess this workbook under the current rules.")
-        for row in rows:
-            row.extend(["", ""])
         save_progress(path, output_headers, rows)
     elif saved == pending:
         pending.replace(path)
@@ -82,7 +81,6 @@ def unfinished_cases(cases, rows, source_width):
     unfinished = []
     for incident, candidates in cases.values():
         decisions = []
-        strongest_count = 0
         for _, row_numbers in candidates.values():
             number = row_numbers[0]
             values = rows[number - 2][source_width:]
@@ -94,17 +92,9 @@ def unfinished_cases(cases, rows, source_width):
             decision = assessment["link_decision"]
             if decision not in ("LINKED", "POSSIBLY_LINKED", "NOT_LINKED", "INSUFFICIENT_EVIDENCE"):
                 raise ValueError(f"Invalid saved decision at CSV row {number}.")
-            flag = assessment["strongest_link"]
-            reason = assessment["strongest_link_rational"]
-            if flag == "YES" and decision == "LINKED" and reason.strip():
-                strongest_count += 1
-            elif flag or reason:
-                raise ValueError(f"Invalid saved strongest link at CSV row {number}.")
             decisions.append(decision)
         if not decisions:
             unfinished.append((incident, candidates))
         elif len(decisions) != len(candidates):
             raise ValueError(f"Partial saved incident {incident['incident_id']}.")
-        elif strongest_count > 3 or (decisions.count("LINKED") == 1 and strongest_count == 0):
-            raise ValueError(f"Invalid strongest link selection for incident {incident['incident_id']}.")
     return unfinished
