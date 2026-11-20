@@ -73,6 +73,8 @@ INCIDENT_FIELDS = (
     "problem_task_work_notes",
     "problem_task_work_notes_list",
     "euc_load_date",
+    "classified_supplier_name",
+    "standardised_supplier_name",
 )
 
 ENGAGEMENT_FIELDS = (

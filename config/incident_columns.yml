@@ -115,6 +115,7 @@ definitions:
   supplier_name_rationale: One or two concise sentences explaining the supplier name, naming conflict, or Unknown.
   classified_supplier_name: Accountable supplier name exactly as recorded, without shortening, expansion, or normalization;
     Unknown if unresolved; null for other classes.
+  standardised_supplier_name: Supplier name used by Finding after cleaning and applying the configured whole-name alias.
   supplier_name_confidence: Confidence in the selected supplier name; null for Unknown or non-SUPPLIER classes.
   recorded_cause: Recorded cause and contributing conditions in as many concise sentences as needed; null if unresolved.
   hsbc_responsible_function: Accountable HSBC function; null for other classes.

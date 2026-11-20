@@ -8,6 +8,7 @@ OUTPUT_COLUMNS = (
     "incident_evidence_citation", "engagement_evidence_citation",
     "incident_evidence_citation_strength", "engagement_evidence_citation_strength",
     "link_rationale", "link_decision", "link_decision_confidence_reason", "link_decision_confidence",
+    "strongest_link", "strongest_link_rational",
 )
 
 
@@ -50,20 +51,27 @@ def load_progress(path, headers, source_rows):
         return rows
 
     csv.field_size_limit(max(csv.field_size_limit(), 2**31 - 1))
-    legacy_columns = [column.replace("_citation_strength", "__citation_strength") for column in OUTPUT_COLUMNS]
+    previous_columns = OUTPUT_COLUMNS[:-2]
+    previous_headers = [*headers, *previous_columns]
+    legacy_columns = [name.replace("_citation_strength", "__citation_strength") for name in previous_columns]
     legacy_headers = [*headers, *legacy_columns]
     with saved.open(encoding="utf-8-sig", newline="") as stream:
         reader = csv.reader(stream, strict=True)
         saved_headers = next(reader, None)
-        if saved_headers not in (output_headers, legacy_headers):
+        if saved_headers not in (output_headers, previous_headers, legacy_headers):
             raise ValueError(f"{saved.name} has different headers. Use a separate output for this input.")
         rows = list(reader)
     if len(rows) != len(source_rows):
         raise ValueError(f"{saved.name} has a different row count from the candidate workbook.")
     for number, (row, source) in enumerate(zip(rows, source_rows), start=2):
-        if len(row) != len(output_headers) or row[:len(headers)] != source:
+        if len(row) != len(saved_headers) or row[:len(headers)] != source:
             raise ValueError(f"{saved.name} differs from the candidate workbook at row {number}.")
-    if saved_headers == legacy_headers:
+    if saved_headers != output_headers:
+        if any(any(row[len(headers):]) for row in rows):
+            raise ValueError(f"{saved.name} contains assessments under the previous decision rules. "
+                             "Use a separate output CSV to assess this workbook under the current rules.")
+        for row in rows:
+            row.extend(["", ""])
         save_progress(path, output_headers, rows)
     elif saved == pending:
         pending.replace(path)
@@ -71,19 +79,32 @@ def load_progress(path, headers, source_rows):
 
 
 def unfinished_cases(cases, rows, source_width):
-    decision_column = source_width + OUTPUT_COLUMNS.index("link_decision")
     unfinished = []
     for incident, candidates in cases.values():
-        decisions = set()
+        decisions = []
+        strongest_count = 0
         for _, row_numbers in candidates.values():
-            for number in row_numbers:
-                row = rows[number - 2]
-                decision = row[decision_column]
-                if decision not in ("", "STRONGEST_LINKED", "LINKED", "POSSIBLY_LINKED", "NOT_LINKED") or (not decision and any(row[source_width:])):
-                    raise ValueError(f"Invalid saved assessment at CSV row {number}.")
-                decisions.add(decision)
-        if "" in decisions:
-            if len(decisions) > 1:
-                raise ValueError(f"Partial saved incident {incident['incident_id']}.")
+            number = row_numbers[0]
+            values = rows[number - 2][source_width:]
+            if any(rows[other - 2][source_width:] != values for other in row_numbers[1:]):
+                raise ValueError(f"Conflicting saved assessments for the candidate at CSV row {number}.")
+            if not any(values):
+                continue
+            assessment = dict(zip(OUTPUT_COLUMNS, values))
+            decision = assessment["link_decision"]
+            if decision not in ("LINKED", "POSSIBLY_LINKED", "NOT_LINKED", "INSUFFICIENT_EVIDENCE"):
+                raise ValueError(f"Invalid saved decision at CSV row {number}.")
+            flag = assessment["strongest_link"]
+            reason = assessment["strongest_link_rational"]
+            if flag == "YES" and decision == "LINKED" and reason.strip():
+                strongest_count += 1
+            elif flag or reason:
+                raise ValueError(f"Invalid saved strongest link at CSV row {number}.")
+            decisions.append(decision)
+        if not decisions:
             unfinished.append((incident, candidates))
+        elif len(decisions) != len(candidates):
+            raise ValueError(f"Partial saved incident {incident['incident_id']}.")
+        elif "LINKED" in decisions and strongest_count != 1:
+            raise ValueError(f"Invalid strongest link selection for incident {incident['incident_id']}.")
     return unfinished

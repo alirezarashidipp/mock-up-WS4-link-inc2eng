@@ -8,8 +8,8 @@ One request contains three JSON properties.
 
 | Property | Content |
 | --- | --- |
-| `field_definitions` | English definitions for the 74 selected incident fields and 22 selected engagement fields. |
-| `incident` | One incident object with all 74 keys listed below. |
+| `field_definitions` | English definitions for the 76 selected incident fields and 22 selected engagement fields. |
+| `incident` | One incident object with all 76 keys listed below. |
 | `engagements` | All distinct engagement records for that incident, each with the 22 selected source keys plus a local `candidate_number`. |
 
 The exact field lists live in `INCIDENT_FIELDS` and `ENGAGEMENT_FIELDS`. They determine selection and order. The request builder adds every selected key, including those whose value is `null`. Definitions are selected for these same fields from the two YAML files. [Selected fields](../fields.py) · [Request builder](../decision.py)
@@ -24,7 +24,7 @@ The exact field lists live in `INCIDENT_FIELDS` and `ENGAGEMENT_FIELDS`. They de
 | `incident_id` header | Required. Each populated source row must have a nonblank value. |
 | `ENGAGEMENT_ID` or `ENG.ENGAGEMENT_ID` header | Required. Each populated source row must have a nonblank value in the selected engagement ID column. |
 | Additional selected fields | A missing column contributes `null` to the request for that field. |
-| Linking output columns in the input | The reader rejects an input header that already equals one of the eight current assessment column names. |
+| Linking output columns in the input | The reader rejects an input header that already equals one of the ten assessment column names. |
 | Empty rows | A row containing only empty strings or empty cells is skipped for model processing and retained in the source-position CSV output. |
 | Header-only workbook | Produces a header-only CSV and makes zero model requests when the required headers are present. |
 
@@ -34,7 +34,7 @@ When a supplier header collides with an incident header or a Finding detail colu
 
 ## Grouping, duplicates and source positions
 
-Rows are grouped by the recorded `incident_id`, following the order in which incidents first appear. All 74 selected incident values must agree across that incident's rows. A difference raises an error before model processing. This comparison occurs before whitespace-only values are converted to `null`, so an empty cell and a whitespace string in otherwise repeated incident data can trigger a mismatch.
+Rows are grouped by the recorded `incident_id`, following the order in which incidents first appear. All 76 selected incident values must agree across that incident's rows. A difference raises an error before model processing. This comparison occurs before whitespace-only values are converted to `null`, so an empty cell and a whitespace string in otherwise repeated incident data can trigger a mismatch.
 
 Within an incident, an engagement is identified by the complete tuple of its 22 selected values. Identical tuples share one candidate and one model assessment. Their original row positions are retained, and the assessment is written to every matching position. Records with the same `ENGAGEMENT_ID` but different selected values are separate candidates.
 
@@ -46,18 +46,13 @@ For example, suppose rows 2 and 5 contain the same incident and identical engage
 
 Missing cells, absent optional columns and strings containing only whitespace become JSON `null`. Nonblank source strings keep their original content. Numbers and booleans retain their JSON types. Other cell objects, including dates and datetimes, are serialized using their string representation.
 
-Only the selected source fields and their definitions enter the request. The upstream classification fields, including `class` and `classified_supplier_name`, remain available in the output through the original workbook columns. Finding uses those fields to select incidents and retrieve candidate engagements. Its four matching fields also remain in the output.
-
-- `standardised_supplier_name`
-- `matched_supplier_column`
-- `match_type`
-- `found_name_in_source`
+The request includes `classified_supplier_name` and Finding's `standardised_supplier_name` as supplier selection context. The CSV also retains `class`, `matched_supplier_column`, `match_type` and `found_name_in_source` from the workbook.
 
 The request includes the raw source fields `supplier_name` and `unlisted_supplier_name`. It omits upstream classification outputs such as `recorded_cause`, `supplier_product_or_service` and `supplier_name_confidence` because they are outside `INCIDENT_FIELDS`. The CSV retains all original workbook columns, including any extra fields. [Request field selection](../decision.py) · [CSV preservation](../../../linking.py)
 
 ## Incident fields
 
-These 74 definitions reproduce the selected entries in the incident YAML. The wording provides source-field context. In this Linking stage, `incident_id` is included in the model payload as well as used locally for grouping. [Incident definitions](../../../config/incident_columns.yml)
+These 76 definitions reproduce the selected entries in the incident YAML. The wording provides source-field context. In this Linking stage, `incident_id` is included in the model payload as well as used locally for grouping. [Incident definitions](../../../config/incident_columns.yml)
 
 | Field | Definition |
 | --- | --- |
@@ -135,6 +130,8 @@ These 74 definitions reproduce the selected entries in the incident YAML. The wo
 | `problem_task_work_notes` | Work notes recorded for a problem task, potentially including investigation observations, actions, and progress. |
 | `problem_task_work_notes_list` | A collection of work notes associated with the problem task, preserved in its source text format. |
 | `euc_load_date` | The data-load date or timestamp recorded in the source extract; it does not by itself date the incident, causal findings, or restoration. |
+| `classified_supplier_name` | Accountable supplier name exactly as recorded, without shortening, expansion, or normalization; Unknown if unresolved; null for other classes. |
+| `standardised_supplier_name` | Supplier name used by Finding after cleaning and applying the configured whole-name alias. |
 
 ## Engagement fields
 

@@ -14,13 +14,20 @@ class EngagementAssessment(BaseModel):
         description="Zero or more excerpts from this candidate's source record, each as 'column_name: verbatim excerpt'."
     )
     engagement_evidence_citation_strength: Literal["UNSUPPORTED", "WEAK", "MODERATE", "STRONG"] = Field(
-        description="How clearly this engagement record describes its service and scope. UNSUPPORTED for no usable scope, WEAK for generic or ambiguous scope, MODERATE for identifiable service with a material gap or conflict, STRONG for specific service and scope with no unresolved material conflict. An unrelated engagement can have STRONG source evidence."
+        description=(
+            "Rate this engagement's own scope. UNSUPPORTED means no usable service clue. "
+            "WEAK gives only a broad category, e.g. IT support. MODERATE identifies the service but a gap or "
+            "conflict changes what it could cover, e.g. WAN support for selected branches without saying which. "
+            "STRONG establishes the covered service and scope without material conflict, e.g. WAN support for all UK branches. Missing irrelevant "
+            "details do not lower the rating. An unrelated engagement can have STRONG evidence."
+        )
+    )
+    link_decision: Literal["LINKED", "POSSIBLY_LINKED", "NOT_LINKED", "INSUFFICIENT_EVIDENCE"] = Field(
+        description="Decision for this incident-engagement pair."
     )
     link_rationale: str = Field(
-        description="In one or two sentences, explain the evidence connecting the affected service to this engagement's scope and any material gap or conflict. For STRONGEST_LINKED, identify the distinguishing evidence or explain that this is the sole confirmed link."
-    )
-    link_decision: Literal["STRONGEST_LINKED", "LINKED", "POSSIBLY_LINKED", "NOT_LINKED"] = Field(
-        description="STRONGEST_LINKED for the sole confirmed link or the uniquely best-supported confirmed link. LINKED for other confirmed links, including ties for strongest. POSSIBLY_LINKED for a concrete service fit with plausible involvement that a material gap or unresolved conflicting account prevents confirming. NOT_LINKED for incompatible scope or no service-specific support."
+        min_length=1,
+        description="In one or two English sentences, explain the decisive evidence, exclusion or material gap for this candidate's decision."
     )
     link_decision_confidence_reason: str = Field(
         min_length=1,
@@ -34,9 +41,21 @@ class EngagementAssessment(BaseModel):
 class LinkingDecision(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
 
-    assessments: list[EngagementAssessment] = Field(
-        description="One assessment for every supplied candidate_number. At most one distinct candidate may be STRONGEST_LINKED."
-    )
     incident_evidence_citation_strength: Literal["UNSUPPORTED", "WEAK", "MODERATE", "STRONG"] = Field(
-        description="How useful the incident alone is for identifying relevant engagements. UNSUPPORTED for no usable service clues, WEAK for broad or ambiguous clues, MODERATE for relevant details with a material gap or conflict, STRONG for specific service and scope details with no unresolved material conflict."
+        description=(
+            "Rate the affected service using the incident alone. UNSUPPORTED means no usable service clue. "
+            "WEAK gives only a broad symptom or category, e.g. connectivity issues. MODERATE identifies the "
+            "service but a gap or conflict changes which scope was affected, e.g. one branch lost WAN access "
+            "and its location is unknown. STRONG establishes the affected service and scope without material conflict, e.g. the London "
+            "branch lost WAN access. Missing irrelevant details do not lower the rating."
+        )
+    )
+    assessments: list[EngagementAssessment] = Field(
+        description="One independent assessment for every supplied candidate_number."
+    )
+    strongest_candidate_number: int | None = Field(
+        description="Local number of the selected LINKED candidate. Null when no candidate is LINKED."
+    )
+    strongest_link_rational: str | None = Field(
+        description="One English sentence explaining the selection, including the tie-break when the evidence is equal. Use null when no candidate is LINKED."
     )

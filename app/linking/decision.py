@@ -26,25 +26,41 @@ def number_engagements(engagements):
 def assessments_by_number(decision, candidate_count):
     # Match results by candidate number, regardless of response order.
     assessments = {}
+    confirmed = set()
+    strongest = decision.strongest_candidate_number
+    reason = decision.strongest_link_rational
     for candidate in decision.assessments:
         number = candidate.candidate_number
         # Reject unknown numbers and duplicate assessments.
         if not 1 <= number <= candidate_count or number in assessments:
             raise ValueError(f"Unknown or repeated candidate_number {number}.")
+        if not candidate.link_rationale.strip():
+            raise ValueError(f"Missing link_rationale for candidate {number}.")
+        if candidate.link_decision == "LINKED":
+            for citations in (candidate.incident_evidence_citation, candidate.engagement_evidence_citation):
+                if not citations or any(not excerpt.strip() for excerpt in citations):
+                    raise ValueError(f"LINKED candidate {number} needs evidence from both records.")
+            if "UNSUPPORTED" in (decision.incident_evidence_citation_strength, candidate.engagement_evidence_citation_strength):
+                raise ValueError(f"LINKED candidate {number} has an unsupported evidence source.")
+            confirmed.add(number)
         assessment = candidate.model_dump()
         # Share the incident-level evidence strength across its engagements.
         assessment["incident_evidence_citation_strength"] = decision.incident_evidence_citation_strength
+        assessment["strongest_link"] = "YES" if number == strongest else None
+        assessment["strongest_link_rational"] = reason if number == strongest else None
         assessments[number] = assessment
     # Require an assessment for every supplied candidate.
     if len(assessments) != candidate_count:
         raise ValueError("The model omitted a candidate assessment.")
-    labels = [assessment["link_decision"] for assessment in assessments.values()]
-    # Allow at most one strongest candidate per incident.
-    if labels.count("STRONGEST_LINKED") > 1:
-        raise ValueError("Multiple candidates were marked STRONGEST_LINKED for one incident.")
-    # The sole confirmed link must carry the strongest label.
-    if labels.count("LINKED") == 1 and "STRONGEST_LINKED" not in labels:
-        raise ValueError("The sole confirmed link must be marked STRONGEST_LINKED.")
+    if strongest is not None:
+        if strongest not in confirmed:
+            raise ValueError("The strongest candidate must have a LINKED decision.")
+        if not reason or not reason.strip():
+            raise ValueError("The strongest candidate requires a strongest_link_rational.")
+    elif reason is not None:
+        raise ValueError("strongest_link_rational must be null when no candidate is selected.")
+    elif confirmed:
+        raise ValueError("Select one strongest candidate among the LINKED candidates.")
     return assessments
 
 
