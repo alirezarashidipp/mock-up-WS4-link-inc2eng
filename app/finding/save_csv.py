@@ -22,3 +22,11 @@ def save_candidates(path, incident_headers, supplier_headers, candidates):
         writer = csv.writer(stream)
         writer.writerow(headers)
         writer.writerows(candidates)
+
+
+def save_invalid_names(path, invalid_incidents):
+    with path.open("w", encoding="utf-8-sig", newline="") as stream:
+        writer = csv.writer(stream)
+        writer.writerow(["incident_id", "classified_supplier_name", "finding_status"])
+        for row in invalid_incidents:
+            writer.writerow([row.get("incident_id"), row["classified_supplier_name"], "invalid name"])

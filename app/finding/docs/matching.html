@@ -35,7 +35,7 @@
             <th scope="col">Input normalized</th>
             <th scope="col">Reference raw</th>
             <th scope="col">Reference normalized</th>
-            <th scope="col">Excel result</th>
+            <th scope="col">Candidate result</th>
           </tr>
         </thead>
         <tbody>
@@ -84,32 +84,32 @@
             <td>Microsoft</td>
             <td>microsoft</td>
             <td>Microsoft UK Ltd / MICROSOFT EMEA</td>
-            <td>microsoftukltd / microsoftemea</td>
-            <td><code>PARTIAL</code> on Normalized name wins</td>
+            <td>microsoftuk / microsoftemea</td>
+            <td><code>SUBSTRING</code> on Normalized name wins</td>
           </tr>
           <tr>
             <th scope="row">7. Only Name contains the input</th>
             <td>Apex</td>
             <td>apex</td>
             <td>Apex Taiwan Ltd</td>
-            <td>apextaiwanltd</td>
-            <td><code>PARTIAL</code> on Name</td>
+            <td>apextaiwan</td>
+            <td><code>SUBSTRING</code> on Name</td>
           </tr>
           <tr>
             <th scope="row">8. Typo</th>
             <td>Microsfot</td>
             <td>microsfot</td>
             <td>Microsoft Ltd</td>
-            <td>microsoftltd</td>
-            <td><code>PARTIAL</code> on Normalized name. Fuzzy score against <code>microsoft</code> is 0.78.</td>
+            <td>microsoft</td>
+            <td><code>FUZZY</code> on Name. The score against <code>microsoft</code> is 0.78.</td>
           </tr>
           <tr>
-            <th scope="row">9. Short name inside another word</th>
+            <th scope="row">9. Short name with an alias</th>
             <td>BT</td>
-            <td>bt</td>
-            <td>DEBT</td>
-            <td>debt</td>
-            <td><code>PARTIAL</code> on Normalized name. Possible false positive.</td>
+            <td>britishtelecom</td>
+            <td>btartbox</td>
+            <td>btartbox</td>
+            <td>Zero rows. The expanded incident name has no match.</td>
           </tr>
           <tr>
             <th scope="row">10. Incident class is HSBC</th>
@@ -132,8 +132,8 @@
             <td>Acme</td>
             <td>acme</td>
             <td>ENG-1: Acme / ENG-2: Acme UK Limited</td>
-            <td>acme / acmeuklimited</td>
-            <td>Two rows: ENG-1 <code>EXACT</code>, ENG-2 <code>PARTIAL</code>, both on Name.</td>
+            <td>acme / acmeuk</td>
+            <td>Two rows: ENG-1 <code>EXACT</code>, ENG-2 <code>SUBSTRING</code>, both on Name.</td>
           </tr>
         </tbody>
       </table>

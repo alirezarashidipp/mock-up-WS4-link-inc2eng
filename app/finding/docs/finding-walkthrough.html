@@ -32,14 +32,14 @@
   <ol>
     <li>
       <h2>Select supplier incidents</h2>
-      <p>Read <code>CLASSIFIED_INCIDENTS.csv</code>. Keep rows whose class is exactly <code>SUPPLIER</code> and whose classified supplier name contains text.</p>
+      <p>Read <code>CLASSIFIED_INCIDENTS.csv</code>. Select rows whose class is exactly <code>SUPPLIER</code>.</p>
       <p class="example">Example incident name &nbsp; <code>The Azure-Solutions (Ltd.)</code></p>
     </li>
     <li>
       <h2>Clean the incident name</h2>
-      <p>Lowercase the text and replace configured <strong>special characters</strong>, such as hyphens and parentheses, with spaces. This keeps adjacent words separate.</p>
-      <p>Remove whole words in the <strong>stop-word list</strong>, such as <code>the</code> and <code>solutions</code>, and <strong>legal terms</strong>, such as <code>Ltd.</code> and <code>Inc.</code>. Skip names that become empty.</p>
-      <p class="example"><code>The Azure-Solutions (Ltd.)</code> → <code>the azure solutions ltd.</code> → <strong>azure</strong></p>
+      <p>Lowercase the text, delete periods, treat ampersands as <code>and</code> and replace configured separators such as hyphens and parentheses with spaces. Keep digits.</p>
+      <p>Remove whole words in the stop-word list, such as <code>the</code> and <code>solutions</code>, and legal terms such as <code>ltd</code> and <code>inc</code>. Record an empty result in the invalid-name report.</p>
+      <p class="example"><code>The Azure-Solutions (Ltd.)</code> → <code>the azure solutions ltd</code> → <strong>azure</strong></p>
     </li>
     <li>
       <h2>Apply a whole-name YAML alias</h2>
@@ -48,20 +48,20 @@
     </li>
     <li>
       <h2>Compare the two engagement name fields</h2>
-      <p>Read <code>ENG_ALL.csv</code> or <code>ENG_ALL.xlsx</code>. For each incident–engagement pair, compare lowercase names without whitespace. Try equality first, then look for the search name inside either engagement name field. If both checks fail, try fuzzy matching.</p>
-      <p class="example"><code>microsoft</code> against <code>Microsoft</code> → <strong>EXACT</strong><br>Against <code>Microsoft UK Ltd</code>, if neither field is an exact match → <strong>PARTIAL</strong></p>
+      <p>Read <code>ENG_ALL.csv</code> or <code>ENG_ALL.xlsx</code>. Apply the same cleaner to both reference fields. Compare each field with the incident search name using equality, substring and fuzzy matching in that order.</p>
+      <p class="example"><code>microsoft</code> against <code>Microsoft</code> → <strong>EXACT</strong><br>Against <code>Microsoft UK Ltd</code> → <strong>SUBSTRING</strong></p>
     </li>
     <li>
       <h2>Recover spelling errors with fuzzy matching</h2>
       <p>The Python library <code>fuzzy-match==0.0.1</code> provides <strong>Levenshtein similarity</strong>. It scores how many character insertions, deletions or substitutions separate two names, relative to the longer name. This gives a repeatable way to catch typos.</p>
       <p>For a search name of at least <strong>5 characters</strong>, Finding compares it with adjacent whole words in the engagement field. A score of <strong>0.72 or higher</strong> qualifies.</p>
-      <p class="example">Separate typo example &nbsp; <code>Microsfot</code> against the first word of <code>Microsoft Ltd</code> → two edits in nine letters → <strong>0.778 · PARTIAL</strong></p>
+      <p class="example"><code>Microsfot</code> against cleaned <code>Microsoft Ltd</code> → two edits in nine letters → <strong>0.778 · FUZZY</strong></p>
       <p>A lower threshold catches more typos but can also admit unrelated suppliers with similar names. A higher threshold can miss genuine spelling variants.</p>
     </li>
     <li>
       <h2>Save the candidates</h2>
-      <p><code>engagement_candidates.csv</code> contains one row per matching pair. It preserves both source records and adds the search name, matched column, match type and original matched value. An incident with no matches contributes no rows.</p>
-      <p class="example">Three matching engagement records → three candidate rows. Linking then assesses which services were involved.</p>
+      <p><code>engagement_candidates.csv</code> contains one row per incident and matching engagement ID. The strongest method wins, with the first source record winning a tie. The row contains the original source values and the four match details.</p>
+      <p class="example">Three distinct matching engagement IDs → three candidate rows. Linking then assesses which services were involved.</p>
     </li>
   </ol>
   <a href="matching.html">Explore 12 worked matching examples →</a>

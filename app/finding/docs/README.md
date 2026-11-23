@@ -17,7 +17,7 @@ The entry point performs these steps in order.
 3. Clean incident supplier names and apply whole-name aliases.
 4. Read ENG_ALL and prepare its two supplier-name comparison fields.
 5. Compare each selected incident with every engagement record.
-6. Save the candidate file and print the selected-incident and candidate-row counts.
+6. Save one candidate per matching incident and engagement ID, write the invalid-name report and print the counts.
 
 Paths are relative to the project root in `finding.py`. Python callers can supply `input_dir` and `output_file` to `main()`. The alias path remains the project configuration path. [Entry point](../../../finding.py)
 
@@ -41,24 +41,24 @@ The engagement reader first looks for all required names in the first row. Other
 
 Header spelling and case must match. Blank or duplicate headers are rejected. Completely empty data rows are skipped. A nonempty row with a different number of fields from the headers is rejected. Supplying both engagement files, or neither, produces an error. [Table reader](../read_files.py) · [Engagement reader](../read_suppliers.py)
 
-## Incident selection and cleaning
+## Incident selection and shared name cleaning
 
-The selector requires `class` to equal `SUPPLIER` exactly and `classified_supplier_name` to contain non-whitespace text. The class value is compared as supplied. A name that becomes empty during cleaning is excluded. [Selector](../select_incidents.py)
+The selector requires `class` to equal `SUPPLIER` exactly. An incident with an empty or whitespace-only name, or one whose name becomes empty during cleaning, goes to the invalid-name report. [Selector](../select_incidents.py)
 
-Cleaning follows these steps.
+The incident name and both engagement name fields use the following rules.
 
 1. Convert the supplier name to lowercase.
-2. Replace each configured special character with a space.
+2. Delete periods, treat `&` as the word `and`, and replace each configured separator with a space.
 3. Split on whitespace and remove matching whole words.
 4. Join retained words with single spaces.
 
 | Set | Current contents |
 | --- | --- |
-| `STOP_WORDS` | `a`, `an`, `and`, `of`, `on`, `the`, `holding`, `holdings`, `llm`, `partners`, `solutions` |
+| `STOP_WORDS` | `a`, `an`, `and`, `of`, `on`, `the`, `holding`, `holdings`, `llm`, `partners`, `solution`, `solutions` |
 | `LEGAL_SUFFIXES` | `company`, `corp`, `corporation`, `inc`, `incorporated`, `limited`, `llc`, `llp`, `ltd`, `plc` |
 | `SPECIAL_CHARACTERS` | Semicolons, commas, colon, Arabic semicolon and comma, round/square/curly brackets, hyphen/en dash/em dash, underscore, slash, backslash, vertical bar, and straight/curly double quotation marks |
 
-Words are removed wherever they appear. Legal-suffix comparison also removes trailing periods from a token, so `Ltd.` is removed. Apostrophes, ampersands and general periods remain unless another stated rule removes the complete token. [Exact cleaning rules](../clean_incidents.py)
+Listed words are removed wherever they appear. Digits and apostrophes are retained. For example, `A.B.C. & Studio 24 Ltd.` becomes `abc studio 24`. [Shared cleaning rules](../clean_incidents.py)
 
 ## Whole-name aliases
 
@@ -67,13 +67,14 @@ Exceptions live in `config/supplier_aliases.yml`. Both keys and replacement valu
 ```yaml
 gcp: Google Cloud Platform
 azure: Microsoft
+bt: British Telecom
 ```
 
-An alias is applied once when the entire cleaned name equals its cleaned key. `GCP` becomes `google cloud platform`. The key `gcp` does not replace the middle of `gcp support`. Keys that become identical after cleaning overwrite earlier entries with the same cleaned key. [Alias file](../../../config/supplier_aliases.yml) · [Replacement functions](../replace_names.py)
+An alias applies once to a whole, nonempty cleaned incident name. `GCP` becomes `google cloud platform`, while `gcp support` retains both words. A later entry takes precedence when keys clean to the same name. [Alias file](../../../config/supplier_aliases.yml) · [Replacement functions](../replace_names.py)
 
 ## Engagement name preparation
 
-For `THIRD_PARTY_NORMALISED_NAME` and `THIRD_PARTY_NAME`, Finding lowercases the value and removes all whitespace. Empty values become empty strings. Punctuation, legal suffixes and other words remain in these comparison values. The original source row is retained alongside them. [Reference cleaning](../clean_suppliers.py)
+For `THIRD_PARTY_NORMALISED_NAME` and `THIRD_PARTY_NAME`, Finding keeps the cleaned words for fuzzy comparison and a copy without spaces for equality and substring checks. The original source row supplies the candidate's output values. [Reference cleaning](../clean_suppliers.py)
 
 At matching time, whitespace is also removed from the incident's cleaned, replaced name. This creates the comparison query. The candidate file's `standardised_supplier_name` retains the readable spaces from the earlier step.
 
@@ -87,23 +88,23 @@ At matching time, whitespace is also removed from the incident's cleaned, replac
 
 ## Matching rules and priority
 
-Every incident is compared with every engagement record. For a particular pair, the first successful comparison determines the column and match label recorded in the output.
+Finding checks both fields on each engagement and keeps the strongest match for each incident and engagement ID. The fields below are listed in tie-breaking order within a source row.
 
 | Pass | Comparison | First field | Second field | Output label |
 | --- | --- | --- | --- | --- |
 | 1 | Whole comparison strings are equal | `THIRD_PARTY_NAME` | `THIRD_PARTY_NORMALISED_NAME` | `EXACT` |
-| 2 | Incident query occurs within the reference value | `THIRD_PARTY_NORMALISED_NAME` | `THIRD_PARTY_NAME` | `PARTIAL` |
-| 3 | Fuzzy similarity against adjacent reference words | `THIRD_PARTY_NORMALISED_NAME` | `THIRD_PARTY_NAME` | `PARTIAL` |
+| 2 | Incident query occurs within the reference value | `THIRD_PARTY_NORMALISED_NAME` | `THIRD_PARTY_NAME` | `SUBSTRING` |
+| 3 | Fuzzy similarity against adjacent reference words | `THIRD_PARTY_NORMALISED_NAME` | `THIRD_PARTY_NAME` | `FUZZY` |
 
-An exact match prevents partial comparisons for that pair. A substring match prevents fuzzy comparison for that pair. Matching continues across the remaining engagement records. [Matching implementation](../match_rows.py)
+For example, when two records for `E1` yield `FUZZY` and `EXACT`, the exact record supplies every engagement column in the output. A separate `E2` with a fuzzy match is also retained. Across equally ranked records for one ID, the first source record wins. [Matching implementation](../match_rows.py)
 
 ### Fuzzy comparison
 
 The `fuzzy-match` library supplies normalized Levenshtein similarity. Its score is `1 - edit_distance / max(query_length, candidate_length)`, with insertion, deletion and substitution costs of one. An adjacent transposition can require two edits.
 
-The fuzzy pass requires a query of at least five characters and similarity of at least `0.72`. It lowercases the original reference field, splits it into whitespace-delimited words, and concatenates contiguous sequences of those words for comparison. Length bounds skip sequences that cannot reach the threshold. The first passing sequence establishes the match.
+The fuzzy pass requires a query of at least five characters and similarity of at least `0.72`. It concatenates contiguous words from the cleaned reference field for comparison. Length bounds skip sequences that cannot reach the threshold. The first passing sequence establishes the match.
 
-For example, `microsfot` compared with `microsoft` has a score of approximately `0.778`. It can match the first word of `Microsoft Ltd`. Fuzzy scores are used internally and the candidate file records `PARTIAL`. [12 worked scenarios](matching.html)
+For example, `microsfot` compared with `microsoft` has a score of approximately `0.778`. It can match the cleaned name from `Microsoft Ltd`. The candidate file records `FUZZY`. [12 worked scenarios](matching.html)
 
 ## Output candidate file
 
@@ -116,26 +117,29 @@ The output is `data/output/engagement_candidates.csv`, a UTF-8 CSV with a BOM an
 | Added column | Contents |
 | --- | --- |
 | `standardised_supplier_name` | Cleaned incident supplier name after alias replacement |
-| `matched_supplier_column` | Original ENG_ALL field producing the first successful match |
-| `match_type` | `EXACT` or `PARTIAL` |
+| `matched_supplier_column` | Original ENG_ALL field producing the retained match |
+| `match_type` | `EXACT`, `SUBSTRING` or `FUZZY` |
 | `found_name_in_source` | Full original value from that engagement field |
 
 An engagement header receives the prefix `ENG.` when it conflicts with an incident header or one of the four added names. Any remaining combined-header conflict is rejected. CSV quoting preserves commas, quotes and embedded newlines. Source values are preserved as loaded, including cached Excel formula values.
 
-Rows follow incident input order, then engagement input order. Repeated source records produce repeated candidates. A pair matching both fields contributes one row. Incidents with zero matches contribute zero rows, and a run with zero candidates produces a header-only candidate file. Each run replaces the output candidate file. [CSV writer](../save_csv.py)
+Pairs appear in first-encounter order while scanning incidents and then engagements. A stronger match for an existing pair replaces its row in place. All distinct matching IDs remain eligible for each incident. For standalone Finding inputs with a missing identifier, the corresponding source row serves as its own identity. Linking requires both IDs. A run with zero candidates produces a header-only candidate file. [CSV writer](../save_csv.py)
+
+The sibling report `<output-stem>_invalid_names.csv` records `incident_id`, the original `classified_supplier_name` and `finding_status` (`invalid name`) for each selected incident with an empty cleaned name. By default this is `engagement_candidates_invalid_names.csv`. Each run refreshes the report, including a header-only report when all selected names are usable. Valid names with zero matches contribute no rows to either file.
 
 ## Interpreting results and limitations
 
 | Situation | Current behavior |
 | --- | --- |
 | `PINGidentity` versus `Ping Identity` | Whitespace-insensitive equality can produce `EXACT`. |
-| `Microsfot` versus `Microsoft Ltd` | The fuzzy pass can produce `PARTIAL`. |
+| `Microsfot` versus `Microsoft Ltd` | The fuzzy pass can produce `FUZZY`. |
 | `IBM` versus `IBN` | The query is too short for the fuzzy pass. |
-| `BT` versus `DEBT` | The substring pass can produce `PARTIAL`, creating a possible false positive. |
-| Several services from one supplier | All name-matching engagement records become candidates. |
+| `BT` versus `btartbox` | The alias changes the query to `britishtelecom`. This pair produces zero matches. |
+| `XY` versus `XYartbox` | The short name has no alias. The literal substring pass produces `SUBSTRING`. |
+| Several services from one supplier | All distinct matching engagement IDs become candidates. |
 | An abbreviation outside the alias file | Exact, substring and fuzzy comparisons determine the result. |
 
-Removing generic words can make different supplier names look alike. ENG_ALL retains punctuation and suffixes during reference preparation, which can affect exact equality. Supplier status, geography, description and service category are carried forward. Retrieval uses the two supplier-name fields.
+Removing common words can make different supplier names equal. For example, `Acme Holdings` and `Acme Solutions` both reduce to `acme`. Supplier status, geography, description and service category are carried forward. Retrieval uses the two supplier-name fields.
 
 The implementation loads tables and candidates into memory and scans all incident–engagement pairs. The `0.72` threshold is a configured rule. A representative labelled dataset is needed to measure retrieval quality for the intended workload.
 

@@ -3,11 +3,12 @@ from fuzzy_match.algorithims import levenshtein
 
 MIN_FUZZY_LENGTH = 5
 MIN_FUZZY_SIMILARITY = 0.72
+MATCH_PRIORITY = {"EXACT": 0, "SUBSTRING": 1, "FUZZY": 2}
 
 
 def fuzzy_partial_match(query, value):
-    """Compare the query with adjacent whole words from the source field."""
-    words = str(value).lower().split()
+    """Compare the compact query with adjacent words in a cleaned reference name."""
+    words = value.split()
     for start in range(len(words)):
         candidate = ""
         for end in range(start, len(words)):
@@ -21,38 +22,47 @@ def fuzzy_partial_match(query, value):
     return False
 
 
-def match_name(query, names, source_row):
-    if query == names["THIRD_PARTY_NAME"]:
-        return "THIRD_PARTY_NAME", "EXACT"
-    for column, value in names.items():
-        if query == value:
-            return column, "EXACT"
+def matching_columns(query, names):
+    """Yield each matching column once, using its strongest method."""
+    for column in ("THIRD_PARTY_NAME", "THIRD_PARTY_NORMALISED_NAME"):
+        _, compact_name = names[column]
+        if query == compact_name:
+            yield column, "EXACT"
 
-    # The normalized field comes first in both partial passes.
-    for column, value in names.items():
-        if query in value:
-            return column, "PARTIAL"
+    for column in ("THIRD_PARTY_NORMALISED_NAME", "THIRD_PARTY_NAME"):
+        name, compact_name = names[column]
+        if not name or query == compact_name:
+            continue
+        if query in compact_name:
+            yield column, "SUBSTRING"
+        elif len(query) >= MIN_FUZZY_LENGTH and fuzzy_partial_match(query, name):
+            yield column, "FUZZY"
 
-    if len(query) >= MIN_FUZZY_LENGTH:
-        for column, value in names.items():
-            if value and fuzzy_partial_match(query, source_row[column]):
-                return column, "PARTIAL"
-    return None
+
+def record_key(row, id_column, row_number):
+    value = row.get(id_column)
+    if value is None or not str(value).strip():
+        # Finding also accepts standalone inputs with missing identifiers.
+        return ("row", row_number)
+    return str(value)
 
 
 def find_candidates(incidents, suppliers):
-    candidates = []
-    for incident, name in incidents:
-        query = "".join(name.split())
+    best_matches = {}
+    for incident_number, (incident, name) in enumerate(incidents):
+        query = name.replace(" ", "")
         if not query:
             continue
-        for supplier, supplier_names in suppliers:
-            match = match_name(query, supplier_names, supplier)
-            if match is None:
-                continue
-            column, match_type = match
-            row = list(incident.values())
-            row.extend(supplier.values())
-            row.extend([name, column, match_type, supplier[column]])
-            candidates.append(row)
-    return candidates
+        incident_key = record_key(incident, "incident_id", incident_number)
+        for supplier_number, (supplier, names) in enumerate(suppliers):
+            for column, match_type in matching_columns(query, names):
+                engagement_key = record_key(supplier, "ENGAGEMENT_ID", supplier_number)
+                pair = (incident_key, engagement_key)
+                priority = MATCH_PRIORITY[match_type]
+                if pair in best_matches and best_matches[pair][0] <= priority:
+                    continue
+                row = list(incident.values())
+                row.extend(supplier.values())
+                row.extend([name, column, match_type, supplier[column]])
+                best_matches[pair] = (priority, row)
+    return [row for _, row in best_matches.values()]

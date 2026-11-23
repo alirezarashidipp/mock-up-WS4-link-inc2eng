@@ -6,7 +6,7 @@ Both stages run from the project root and write to `data/output/`.
 
 | Stage guide | Command | Output | One row per |
 | --- | --- | --- | --- |
-| [Finding candidates](app/finding/docs/README.md) | `python finding.py` | `engagement_candidates.csv` | Incident and matching engagement record |
+| [Finding candidates](app/finding/docs/README.md) | `python finding.py` | `engagement_candidates.csv` | Incident and matching engagement ID |
 | [Linking incidents](app/linking/docs/README.md) | `python linking.py` | `engagement_links.csv` | Source row in the candidate file |
 
 ## Run the finder
@@ -27,16 +27,16 @@ For subsequent runs, use the last command.
 
 ## Read the results
 
-Open `data/output/engagement_candidates.csv`. The finder selects incidents whose `class` is exactly `SUPPLIER` and whose supplier name contains usable text after cleaning. Incident names use the configured whole-name aliases. Engagement name fields use only lowercase text and whitespace removal for comparison. The candidate file retains the original source values.
+Open `data/output/engagement_candidates.csv`. Finding selects rows whose `class` is exactly `SUPPLIER`. It applies the same cleaning rules to the incident name and both engagement name fields, then applies whole-name YAML aliases to the incident name only. For example, `B.T.` becomes `british telecom`. The candidate file retains the original source values.
 
-For each incident and engagement, the finder tries full equality (`EXACT`) first. It then checks for a literal substring and finally tries fuzzy matching for eligible names. Both partial checks try the normalized field first and produce `PARTIAL`. Each matching pair contributes one candidate file row with the original columns from both files and four additional fields.
+Each distinct matching engagement ID gets a row for that incident. When the same ID matches through multiple columns or source records, Finding keeps the strongest method in the order `EXACT`, `SUBSTRING`, `FUZZY`. The earliest source record wins a tie. The candidate file adds four fields to the selected source records.
 
 - `standardised_supplier_name` holds the incident name used in the comparison.
 - `matched_supplier_column` identifies the first supplier column that matched in priority order.
-- `match_type` records `EXACT` or `PARTIAL`.
+- `match_type` records `EXACT`, `SUBSTRING` or `FUZZY`.
 - `found_name_in_source` contains the full original ENG_ALL value from the matched column.
 
-An incident can have several candidate rows or none. Each run replaces the previous candidate file. The stage guide covers cleaning rules, column priorities and worked examples. [Finding guide](app/finding/docs/README.md)
+An incident can have several candidate rows or none. Supplier incidents whose names are blank after cleaning appear in `data/output/engagement_candidates_invalid_names.csv` with the status `invalid name`. Each run replaces both Finding outputs. [Finding rules and examples](app/finding/docs/README.md)
 
 ## Link incidents to engagements
 

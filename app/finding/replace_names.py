@@ -16,6 +16,7 @@ def read_replacements(path):
 def replace_incident_names(incidents, replacements):
     updated = []
     for row, name in incidents:
-        search_name = replacements.get(name, name)
-        updated.append((row, search_name))
+        if name:
+            name = replacements.get(name, name)
+        updated.append((row, name))
     return updated
