@@ -3,6 +3,9 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 
+LinkDecision = Literal["LINKED", "POSSIBLY_LINKED", "NOT_LINKED", "INSUFFICIENT_EVIDENCE"]
+
+
 class EngagementAssessment(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
 
@@ -22,7 +25,7 @@ class EngagementAssessment(BaseModel):
             "details do not lower the rating. An unrelated engagement can have STRONG evidence."
         )
     )
-    link_decision: Literal["LINKED", "POSSIBLY_LINKED", "NOT_LINKED", "INSUFFICIENT_EVIDENCE"] = Field(
+    link_decision: LinkDecision = Field(
         description="Decision for this incident-engagement pair."
     )
     link_rationale: str = Field(

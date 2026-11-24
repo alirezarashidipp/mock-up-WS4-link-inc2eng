@@ -1,7 +1,26 @@
+import csv
+
 from .fields import ENGAGEMENT_FIELDS, INCIDENT_FIELDS
+from .save_results import OUTPUT_COLUMNS
+
+
+# Incident work notes can exceed the CSV parser's default field size.
+csv.field_size_limit(max(csv.field_size_limit(), 2**31 - 1))
+
+
+def read_candidates(candidates_file):
+    with open(candidates_file, encoding="utf-8-sig", newline="") as stream:
+        reader = csv.reader(stream, strict=True)
+        headers = next(reader, [])
+        rows = list(reader)
+    return headers, rows
 
 
 def read_cases(rows, headers):
+    if not headers or not all(headers) or len(headers) != len(set(headers)):
+        raise ValueError("The candidate file contains blank or duplicate headers.")
+    if any(name in headers for name in OUTPUT_COLUMNS):
+        raise ValueError("The candidate file already contains a linking output column.")
     engagement_columns = {}
     for field in ENGAGEMENT_FIELDS:
         prefixed = "ENG." + field
@@ -12,12 +31,16 @@ def read_cases(rows, headers):
 
     cases = {}
     for row_number, values in enumerate(rows, start=2):
+        if values and len(values) != len(headers):
+            raise ValueError(f"Candidate CSV row {row_number} has the wrong number of fields.")
         if all(value is None or value == "" for value in values):
             continue
         row = dict(zip(headers, values))
         incident_id = row["incident_id"]
         engagement_id = row[engagement_columns["ENGAGEMENT_ID"]]
-        if incident_id is None or not str(incident_id).strip() or engagement_id is None or not str(engagement_id).strip():
+        missing_incident_id = incident_id is None or not str(incident_id).strip()
+        missing_engagement_id = engagement_id is None or not str(engagement_id).strip()
+        if missing_incident_id or missing_engagement_id:
             raise ValueError(f"Missing incident_id or ENGAGEMENT_ID in candidate row {row_number}.")
 
         incident = {field: row.get(field) for field in INCIDENT_FIELDS}
@@ -31,5 +54,6 @@ def read_cases(rows, headers):
         record_key = tuple(engagement.values())
         if record_key not in candidates:
             candidates[record_key] = (engagement, [])
-        candidates[record_key][1].append(row_number)
+        _, source_row_numbers = candidates[record_key]
+        source_row_numbers.append(row_number)
     return cases

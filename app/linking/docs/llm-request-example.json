@@ -1,0 +1,30 @@
+{
+  "field_definitions": {
+    "incident": {
+      "incident_id": "Unique identifier of the incident, preserved locally to associate its original source data with its classification result.",
+      "incident_description": "A detailed incident narrative describing symptoms, timing, impact, and investigation context.",
+      "incident_impacted_business_service_name": "The business service recorded as affected by the incident."
+    },
+    "engagement": {
+      "ENGAGEMENT_ID": "Identifier assigned to the engagement.",
+      "ENGAGEMENT_NAME": "Name of the engagement.",
+      "ENGAGEMENT_DESCRIPTION_TEXT": "Description of the work or services covered by the engagement.",
+      "THIRD_PARTY_NAME": "Third-party name recorded for the engagement.",
+      "SERVICE_CATEGORY_L1_NAME": "Name of the level-one service category."
+    }
+  },
+  "incident": {
+    "incident_id": "inc2",
+    "incident_description": "Shops received timeouts from the card authorisation gateway between 09:10 and 09:25. Payments resumed after the gateway restarted.",
+    "incident_impacted_business_service_name": "Retail card payments"
+  },
+  "engagements": {
+    "columns": ["candidate_number", "ENGAGEMENT_ID", "ENGAGEMENT_NAME", "ENGAGEMENT_DESCRIPTION_TEXT", "THIRD_PARTY_NAME", "SERVICE_CATEGORY_L1_NAME"],
+    "rows": [
+      [1, "ENG1", "Card payment processing", "Operates the retail card authorisation gateway.", "Example Services Ltd", "Payment processing"],
+      [2, "ENG2", "Payroll processing", "Calculates salaries and prepares monthly payroll files.", "Example Services Ltd", "Payroll"],
+      [3, "ENG3", "Office network support", "Maintains Wi-Fi and switches in head office buildings.", "Example Services Ltd", "Network support"],
+      [4, "ENG4", "Card settlement reporting", "Produces overnight reports on settled card transactions.", "Example Services Ltd", "Financial reporting"]
+    ]
+  }
+}

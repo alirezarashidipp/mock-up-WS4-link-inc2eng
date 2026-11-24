@@ -10,12 +10,13 @@
 - Each decision must be `LINKED`, `POSSIBLY_LINKED`, `NOT_LINKED` or `INSUFFICIENT_EVIDENCE`.
 - Duplicate source rows of the same candidate receive the same assessment.
 
-[Response checks](../decision.py) · [Schema](../schema.py) · [Row grouping](../read_cases.py)
+[Response checks](../validate_response.py) · [Schema](../schema.py) · [Row grouping](../read_cases.py)
 
 ## Prompt rules
 
-- Identify which engagements cover the service involved in the incident. Gather relevant excerpts from the incident and each candidate, then rate the quality of each source.
-- Assess each candidate on its own evidence. Eliminating other candidates provides no evidence for the candidate that remains.
+- Supplier attribution is established. Identify which engagements cover the supplier service, component or activity implicated in the failure. Gather excerpts from each source and rate its evidence.
+- The relevant engagement may be outside the list. Zero, one or several candidates may be confirmed.
+- Assess each candidate on its own evidence, even a sole candidate. Eliminating other candidates supplies no evidence for the one that remains.
 - `LINKED` requires defensible service evidence from both the incident and that engagement. Several candidates can qualify.
 - `POSSIBLY_LINKED` requires a concrete service fit and a material gap or conflict that prevents confirmation.
 - `NOT_LINKED` requires evidence that excludes the candidate, such as a clear supplier identity conflict or incompatible service scope. Recognise the search alias recorded by Finding when comparing suppliers.

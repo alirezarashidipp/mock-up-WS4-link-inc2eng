@@ -1,6 +1,6 @@
 # Linking incidents to engagements
 
-Linking determines which of a known supplier's engagements cover the services involved in an HSBC incident. Finding has already retrieved the supplier's candidate engagements. Linking compares the incident evidence with each engagement's service and scope, then records a decision and its evidence on every original candidate row.
+The incident has already been attributed to a known supplier. Finding retrieves candidate engagements by supplier name. Linking checks which engagements cover the supplier service, component or activity that caused or contributed to the incident, then records a decision and its evidence on every original candidate row.
 
 ## Inputs, configuration and output
 
@@ -45,10 +45,10 @@ Azure uses `EnvironmentCredential` and a bearer-token provider for Microsoft Ent
 
 ## Processing one incident
 
-1. Read the candidate CSV and retain the original rows and their order.
-2. Group rows by the recorded `incident_id`. The 76 selected incident values must agree across all rows of that incident.
+1. `read_candidates()` reads the CSV and returns its headers and rows in source order.
+2. `read_cases()` checks those rows and groups them by `incident_id`. The 76 selected incident values must agree across all rows of that incident.
 3. Within each incident, group engagement rows with identical values across the 22 selected engagement fields. Assign each distinct record a `candidate_number`, starting at 1.
-4. Restore saved progress and select incidents whose decisions are still blank.
+4. Restore saved progress and select incidents with blank assessments.
 5. Send one incident with all its distinct engagement candidates, field definitions and the system prompt.
 6. Parse the response into `LinkingDecision`. Check that every candidate number appears exactly once.
 7. Map each assessment back to every original row associated with that candidate. Repeat the incident evidence strength across those rows.
@@ -58,19 +58,21 @@ Requests run sequentially. All candidates for an incident travel together. Ident
 
 ## What the model receives and returns
 
-The request contains `field_definitions`, one `incident` object and an `engagements` list. The incident has 76 selected candidate file fields. Each engagement has 22 selected source fields plus its local `candidate_number`. `incident_id` and `ENGAGEMENT_ID` are included in those fields. Missing or whitespace-only values become JSON `null`; other values retain their source content.
+The request contains `field_definitions`, one `incident` object with 76 selected fields, and an `engagements` table. Its `columns` list starts with `candidate_number`, followed by the 22 selected engagement field names. Each array in `rows` represents one candidate and follows that same column order. Missing or whitespace-only values become JSON `null` and keep their position. Other values retain their source content, including `incident_id` and `ENGAGEMENT_ID`.
+
+The abbreviated JSON example shows the user message for synthetic incident `inc2`. It includes three incident fields and four engagement rows, each with a local `candidate_number` and five source values. [Example request (JSON)](llm-request-example.json)
 
 The OpenAI SDK call uses `chat.completions.parse` with `response_format=LinkingDecision`, the configured model and temperature, and `store=False`.
 
-The response contains one shared `incident_evidence_citation_strength` and an `assessments` list. Each assessment has its candidate number, citations, engagement evidence strength, decision, rationale and confidence with its explanation. The writer maps the response to the eight CSV columns below. [Response schema](../schema.py)
+The response contains one shared `incident_evidence_citation_strength` and an `assessments` list. Each assessment has its candidate number, citations, engagement evidence strength, decision, rationale and confidence with its explanation. The writer maps these values to eight CSV columns. [Response schema](../schema.py)
 
 ## Decision rules
 
-The goal is to identify which engagements cover the service involved in this incident. For each candidate, gather evidence from the incident and that engagement, rate the quality of the two sources, then assign one decision and explain it. [One-sentence rules](rules.md)
+The relevant engagement may be outside the supplied list. Zero, one or several candidates can be confirmed. Apply the same evidence rules when the list contains a single candidate. [One-sentence rules](rules.md)
 
 | Label | Required interpretation |
 | --- | --- |
-| `LINKED` | Defensible evidence from both the incident and the engagement supports this candidate's involvement. Several candidates can qualify independently. |
+| `LINKED` | The incident implicates a supplier service, component or activity in the failure, and the engagement's documented scope covers it. |
 | `POSSIBLY_LINKED` | A concrete service fit and plausible involvement, with a material gap or unresolved contradictory account preventing confirmation. |
 | `NOT_LINKED` | The records exclude the candidate, for example through a clearly different supplier or incompatible service scope. |
 | `INSUFFICIENT_EVIDENCE` | The available information is too sparse or generic to establish a concrete service fit or exclude the candidate. A supplier-name match alone falls here. |
@@ -99,7 +101,7 @@ Decision confidence expresses how appropriate the chosen label is for the availa
 
 ## CSV columns
 
-The comma-separated CSV uses UTF-8 with a BOM. It preserves every source row, column and their order as text, including duplicate rows and fully blank rows. Fully blank source rows retain blank assessments. For candidate rows, a blank `link_decision` indicates pending work.
+The comma-separated CSV uses UTF-8 with a BOM. It preserves every source row, column and their order as text, including duplicate rows and fully blank rows. Fully blank source rows retain blank assessments. Pending candidate rows have eight empty assessment fields.
 
 | Added column, in order | Meaning and representation |
 | --- | --- |
@@ -125,7 +127,8 @@ These synthetic cases illustrate the decision rules.
 | Both records support two engagements, with one directly identifying the affected component and the other having broader supported scope. | Both are `LINKED`. |
 | The affected service matches two regional engagements, but the incident's region is unknown. | Both can be `POSSIBLY_LINKED`. Their rationales identify the missing region. |
 | The incident is explicitly limited to London and the engagement's service coverage explicitly excludes London. | `NOT_LINKED` with a scope-conflict explanation. |
-| The only common fact is the supplier name, and the incident gives no usable service clue. | `INSUFFICIENT_EVIDENCE`. |
+| The supplier's WAN circuit failed. The two retrieved engagements are expressly limited to payroll and office printing. | Both are `NOT_LINKED`. Each scope excludes the failed service. |
+| The supplier is known, but the incident gives no usable service clue and the only common fact is the supplier name. | Each candidate receives `INSUFFICIENT_EVIDENCE`. |
 
 ## Saving and resuming
 
@@ -133,7 +136,7 @@ On a fresh run, the CSV starts with all source rows and blank assessment columns
 
 If a request or validation fails, saved incidents remain available and the run stops. If an external program prevents final replacement, a completed `.pending` snapshot remains available for recovery. A response interrupted before it reaches disk must be requested again.
 
-Rerun the same command with the same input to continue. Progress restoration checks the header names, row count, source values and source order. It recovers a pending snapshot before sending another request and skips completed incidents in the current format. Ten-column checkpoints are resumed after removing the two ranking columns. To reassess work saved in a pre-ranking eight-column CSV that contains decisions, choose a fresh output path. Those decisions used a different meaning for `NOT_LINKED`.
+Rerun the same command with the same input to continue. The saved header must match the source columns followed by the eight assessment columns in order. Linking checks the source rows, recovers any pending snapshot and requests only incidents with blank assessments.
 
 A `.lock` file coordinates access to the output path through `FileLock`. A second process attempting to use the same output fails immediately while the lock is held.
 
@@ -171,11 +174,14 @@ Synthetic and mocked-response checks establish candidate file mapping, serializa
 
 | File | Responsibility |
 | --- | --- |
-| [linking.py](../../../linking.py) | Read source, restore progress, request decisions and save incidents in sequence |
-| [read_cases.py](../read_cases.py) | Group incidents and distinct engagement records with source row positions |
+| [linking.py](../../../linking.py) | Coordinate reading, resuming, requesting and saving each incident |
+| [read_cases.py](../read_cases.py) | Open the candidate CSV and group its records with their source row positions |
 | [fields.py](../fields.py) | Select and order model input fields |
+| [read_instructions.py](../read_instructions.py) | Load the prompt and definitions for the selected model inputs |
 | [llm_connection.py](../llm_connection.py) | Read settings, authenticate and manage the provider client |
-| [decision.py](../decision.py) | Build requests, parse responses and map candidate assessments |
+| [decision.py](../decision.py) | Send the incident and engagement table and receive a structured response |
+| [validate_response.py](../validate_response.py) | Check the candidate numbers and required citations and index the assessments |
 | [schema.py](../schema.py) | Define structured response fields and rubrics |
 | [prompt.yml](../prompt.yml) | Define evidence and decision instructions |
-| [save_results.py](../save_results.py) | Flateight assessments, save snapshots and restore CSV progress |
+| [read_progress.py](../read_progress.py) | Restore saved rows and select the pending incidents |
+| [save_results.py](../save_results.py) | Map assessments onto the source rows and manage the output CSV snapshots |

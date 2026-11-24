@@ -2,60 +2,31 @@ import json
 
 from .fields import INCIDENT_FIELDS, ENGAGEMENT_FIELDS
 from .schema import LinkingDecision
+from .validate_response import assessments_by_number
 
 
-def source_values(row, fields):
-    values = {}
-    for field in fields:
-        value = row.get(field)
-        if isinstance(value, str) and not value.strip():
-            value = None
-        values[field] = value
-    return values
+def source_value(record, field):
+    value = record.get(field)
+    if isinstance(value, str) and not value.strip():
+        return None
+    return value
 
 
-def number_engagements(engagements):
-    numbered = []
+def build_engagement_table(engagements):
+    columns = ["candidate_number", *ENGAGEMENT_FIELDS]
+    rows = []
     for candidate_number, engagement in enumerate(engagements, start=1):
-        values = source_values(engagement, ENGAGEMENT_FIELDS)
-        values["candidate_number"] = candidate_number
-        numbered.append(values)
-    return numbered
-
-
-def assessments_by_number(decision, candidate_count):
-    # Match results by candidate number, regardless of response order.
-    assessments = {}
-    for candidate in decision.assessments:
-        number = candidate.candidate_number
-        # Reject unknown numbers and duplicate assessments.
-        if not 1 <= number <= candidate_count or number in assessments:
-            raise ValueError(f"Unknown or repeated candidate_number {number}.")
-        if not candidate.link_rationale.strip():
-            raise ValueError(f"Missing link_rationale for candidate {number}.")
-        if candidate.link_decision == "LINKED":
-            for citations in (candidate.incident_evidence_citation, candidate.engagement_evidence_citation):
-                if not citations or any(not excerpt.strip() for excerpt in citations):
-                    raise ValueError(f"LINKED candidate {number} needs evidence from both records.")
-            if "UNSUPPORTED" in (decision.incident_evidence_citation_strength, candidate.engagement_evidence_citation_strength):
-                raise ValueError(f"LINKED candidate {number} has an unsupported evidence source.")
-        assessment = candidate.model_dump()
-        # Share the incident-level evidence strength across its engagements.
-        assessment["incident_evidence_citation_strength"] = decision.incident_evidence_citation_strength
-        assessments[number] = assessment
-    # Require an assessment for every supplied candidate.
-    if len(assessments) != candidate_count:
-        raise ValueError("The model omitted a candidate assessment.")
-    return assessments
+        values = [source_value(engagement, field) for field in ENGAGEMENT_FIELDS]
+        rows.append([candidate_number, *values])
+    return {"columns": columns, "rows": rows}
 
 
 def request_decision(client, model, incident, engagements, definitions, prompt, temperature):
-    incident = source_values(incident, INCIDENT_FIELDS)
-    numbered_engagements = number_engagements(engagements)
+    incident_values = {field: source_value(incident, field) for field in INCIDENT_FIELDS}
     payload = {
         "field_definitions": definitions,
-        "incident": incident,
-        "engagements": numbered_engagements,
+        "incident": incident_values,
+        "engagements": build_engagement_table(engagements),
     }
     response = client.chat.completions.parse(
         model=model,

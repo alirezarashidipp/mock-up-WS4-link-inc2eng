@@ -3,11 +3,18 @@ import os
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
+from .read_progress import pending_incidents, read_progress
+
 
 OUTPUT_COLUMNS = (
-    "incident_evidence_citation", "engagement_evidence_citation",
-    "incident_evidence_citation_strength", "engagement_evidence_citation_strength",
-    "link_rationale", "link_decision", "link_decision_confidence_reason", "link_decision_confidence",
+    "incident_evidence_citation",
+    "engagement_evidence_citation",
+    "incident_evidence_citation_strength",
+    "engagement_evidence_citation_strength",
+    "link_rationale",
+    "link_decision",
+    "link_decision_confidence_reason",
+    "link_decision_confidence",
 )
 
 
@@ -19,6 +26,14 @@ def assessment_values(assessment):
             value = "\n".join(value) or "[]"
         values.append("" if value is None else value)
     return values
+
+
+def apply_assessments(rows, candidate_records, assessments, source_width):
+    """Write each numbered assessment onto all the source rows it represents."""
+    for number, (_, row_numbers) in enumerate(candidate_records, start=1):
+        values = assessment_values(assessments[number])
+        for row_number in row_numbers:
+            rows[row_number - 2][source_width:] = values
 
 
 def save_progress(path, headers, rows):
@@ -41,60 +56,12 @@ def save_progress(path, headers, rows):
 
 
 def load_progress(path, headers, source_rows):
-    pending = path.with_name(path.name + ".pending")
-    saved = pending if pending.exists() else path
-    output_headers = [*headers, *OUTPUT_COLUMNS]
-    if not saved.exists():
-        rows = [row + [""] * len(OUTPUT_COLUMNS) for row in source_rows]
-        save_progress(path, output_headers, rows)
-        return rows
-
-    csv.field_size_limit(max(csv.field_size_limit(), 2**31 - 1))
-    previous_headers = [*output_headers, "strongest_link", "strongest_link_rational"]
-    legacy_columns = [name.replace("_citation_strength", "__citation_strength") for name in OUTPUT_COLUMNS]
-    legacy_headers = [*headers, *legacy_columns]
-    with saved.open(encoding="utf-8-sig", newline="") as stream:
-        reader = csv.reader(stream, strict=True)
-        saved_headers = next(reader, None)
-        if saved_headers not in (output_headers, previous_headers, legacy_headers):
-            raise ValueError(f"{saved.name} has different headers. Use a separate output for this input.")
-        rows = list(reader)
-    if len(rows) != len(source_rows):
-        raise ValueError(f"{saved.name} has a different row count from the candidate CSV.")
-    for number, (row, source) in enumerate(zip(rows, source_rows), start=2):
-        if len(row) != len(saved_headers) or row[:len(headers)] != source:
-            raise ValueError(f"{saved.name} differs from the candidate CSV at row {number}.")
-    if saved_headers == previous_headers:
-        rows = [row[:-2] for row in rows]
-        save_progress(path, output_headers, rows)
-    elif saved_headers == legacy_headers:
-        if any(any(row[len(headers):]) for row in rows):
-            raise ValueError(f"{saved.name} contains assessments under the previous decision rules. "
-                             "Use a separate output CSV to assess this candidate CSV under the current rules.")
-        save_progress(path, output_headers, rows)
-    elif saved == pending:
-        pending.replace(path)
+    """Open or initialise an output snapshot for callers using the CSV helpers directly."""
+    rows, needs_snapshot = read_progress(path, headers, source_rows, OUTPUT_COLUMNS)
+    if needs_snapshot:
+        save_progress(path, [*headers, *OUTPUT_COLUMNS], rows)
     return rows
 
 
 def unfinished_cases(cases, rows, source_width):
-    unfinished = []
-    for incident, candidates in cases.values():
-        decisions = []
-        for _, row_numbers in candidates.values():
-            number = row_numbers[0]
-            values = rows[number - 2][source_width:]
-            if any(rows[other - 2][source_width:] != values for other in row_numbers[1:]):
-                raise ValueError(f"Conflicting saved assessments for the candidate at CSV row {number}.")
-            if not any(values):
-                continue
-            assessment = dict(zip(OUTPUT_COLUMNS, values))
-            decision = assessment["link_decision"]
-            if decision not in ("LINKED", "POSSIBLY_LINKED", "NOT_LINKED", "INSUFFICIENT_EVIDENCE"):
-                raise ValueError(f"Invalid saved decision at CSV row {number}.")
-            decisions.append(decision)
-        if not decisions:
-            unfinished.append((incident, candidates))
-        elif len(decisions) != len(candidates):
-            raise ValueError(f"Partial saved incident {incident['incident_id']}.")
-    return unfinished
+    return pending_incidents(cases, rows, source_width, OUTPUT_COLUMNS)

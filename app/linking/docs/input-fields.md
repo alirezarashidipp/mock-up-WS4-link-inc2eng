@@ -1,6 +1,6 @@
 # Linking input contract and field reference
 
-Linking reads `data/output/engagement_candidates.csv`. This candidate file supplies the incident and engagement records for every model request. The project-root `linking.py` groups rows and preserves their positions for output. [Entry point](../../../linking.py) · [Candidate file reader](../read_cases.py) · [Linking guide](README.md)
+Linking reads `data/output/engagement_candidates.csv`. The entry point calls `read_candidates()` to get the headers and raw rows, then `read_cases()` to check and group them while retaining their source positions. [Entry point](../../../linking.py) · [Candidate file reader](../read_cases.py) · [Linking guide](README.md)
 
 ## From candidate file rows to one request
 
@@ -10,9 +10,22 @@ One request contains three JSON properties.
 | --- | --- |
 | `field_definitions` | English definitions for the 76 selected incident fields and 22 selected engagement fields. |
 | `incident` | One incident object with all 76 keys listed below. |
-| `engagements` | All distinct engagement records for that incident, each with the 22 selected source keys plus a local `candidate_number`. |
+| `engagements` | A table with one shared `columns` list and one array in `rows` per distinct candidate. |
 
-The exact field lists live in `INCIDENT_FIELDS` and `ENGAGEMENT_FIELDS`. They determine selection and order. The request builder adds every selected key, including those whose value is `null`. Definitions are selected for these same fields from the two YAML files. [Selected fields](../fields.py) · [Request builder](../decision.py)
+The field lists in `INCIDENT_FIELDS` and `ENGAGEMENT_FIELDS` determine selection and order. The two YAML files supply the definitions for those fields. Every engagement row follows the order in `engagements.columns`. A missing value occupies its position as `null`. [Selected fields](../fields.py) · [Request builder](../decision.py)
+
+This example shows the first three columns of the `engagements` table for one incident.
+
+```json
+{
+  "columns": ["candidate_number", "ENGAGEMENT_ID", "ENGAGEMENT_NAME"],
+  "rows": [
+    [1, "ENG1", "Card payment processing"],
+    [2, "ENG2", "Payroll processing"],
+    [3, "ENG3", "Office network support"]
+  ]
+}
+```
 
 `ENGAGEMENT_ID`, `THIRD_PARTY_ID`, `COUPA_THIRD_PARTY_ID` and the selected BGI IDs are included in the model input. The model returns the supplied `candidate_number` to identify each assessment. The application uses that number to attach the result to the corresponding source rows.
 
@@ -24,11 +37,11 @@ The exact field lists live in `INCIDENT_FIELDS` and `ENGAGEMENT_FIELDS`. They de
 | `incident_id` header | Required. Each populated source row must have a nonblank value. |
 | `ENGAGEMENT_ID` or `ENG.ENGAGEMENT_ID` header | Required. Each populated source row must have a nonblank value in the selected engagement ID column. |
 | Additional selected fields | A missing column contributes `null` to the request for that field. |
-| Linking output columns in the input | The reader rejects an input header that already equals one of the eight assessment column names. |
+| Linking output columns in the input | `read_cases()` reserves the eight assessment column names for the output. |
 | Empty rows | A row containing only empty strings or empty cells is skipped for model processing and retained in the source-position CSV output. |
 | Header-only candidate file | Produces a header-only CSV and makes zero model requests when the required headers are present. |
 
-Header names and identifiers are used as recorded. The linking reader performs no supplier-name cleaning or alias replacement. The field names below are case-sensitive. [Input reader and checks](../../../linking.py)
+Header names and identifiers are used as recorded. The linking reader performs no supplier-name cleaning or alias replacement. The field names below are case-sensitive. [Input reader and checks](../read_cases.py)
 
 When a supplier header collides with an incident header or a Finding detail column, Finding prefixes the supplier header with `ENG.`. For every selected engagement field, Linking first checks for `ENG.<field>` and uses that header when present. Otherwise it uses the unprefixed field. The model receives the canonical name, such as `ENGAGEMENT_NAME`, even when the candidate file column is `ENG.ENGAGEMENT_NAME`. [Finding output headers](../../finding/save_csv.py) · [Engagement column selection](../read_cases.py)
 
@@ -38,7 +51,7 @@ Rows are grouped by the recorded `incident_id`, following the order in which inc
 
 Within an incident, an engagement is identified by the complete tuple of its 22 selected values. Identical tuples share one candidate and one model assessment. Their original row positions are retained, and the assessment is written to every matching position. Records with the same `ENGAGEMENT_ID` but different selected values are separate candidates.
 
-Candidate numbers start at 1 for each incident and follow first appearance of each distinct engagement tuple. The returned assessment order can vary because the application maps results by `candidate_number`. [Grouping and duplicate handling](../read_cases.py) · [Response mapping](../decision.py)
+Candidate numbers start at 1 for each incident and follow first appearance of each distinct engagement tuple. The returned assessment order can vary because the application maps results by `candidate_number`. [Grouping and duplicate handling](../read_cases.py) · [Response mapping](../validate_response.py)
 
 For example, suppose rows 2 and 5 contain the same incident and identical engagement values, row 3 contains a different engagement for that incident, and row 4 belongs to another incident. The first incident is sent once with two candidates. Rows 2 and 5 receive the same assessment, row 3 receives the second assessment, and row 4 keeps its original position in the final CSV.
 
@@ -135,7 +148,7 @@ These 76 definitions reproduce the selected entries in the incident YAML. The wo
 
 ## Engagement fields
 
-Each candidate contains these 22 source fields, followed by the local `candidate_number`. Definitions reproduce the selected entries in the engagement YAML. [Engagement definitions](../../../config/engagement_columns.yml)
+Each candidate row starts with its local `candidate_number`, followed by the values of these 22 source fields in the order shown. Definitions reproduce the selected entries in the engagement YAML. [Engagement definitions](../../../config/engagement_columns.yml)
 
 | Field | Definition |
 | --- | --- |

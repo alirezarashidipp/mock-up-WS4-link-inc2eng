@@ -1,6 +1,6 @@
 # WS4 incident-to-engagement linking
 
-This demo starts with an HSBC incident already attributed to a named supplier. One supplier can provide several services under different engagement IDs. Finding retrieves the supplier's candidate engagements. Linking compares the affected service in the incident record with the work described by each engagement.
+This demo starts with an HSBC incident already attributed to a named supplier. One supplier can provide several services under different engagement IDs. Finding retrieves candidate engagements by supplier name. Linking checks which of them cover the supplier service or activity implicated in the failure. The relevant engagement may be outside the candidate list.
 
 Both stages run from the project root and write to `data/output/`.
 
@@ -48,9 +48,9 @@ An incident can have several candidate rows or none. Selected incidents whose na
 2. Configure the existing OpenAI or Azure OpenAI connection in the project-root `.env`. See [.env.example](.env.example) for the provider settings and `LLM_TEMPERATURE`. Use a model or deployment that supports structured outputs and the configured temperature.
 3. Run `.\.venv\Scripts\python.exe linking.py` from the project root.
 
-For example, an Amazon name match may return ten engagements across hosting, connectivity and backup. Linking sends the incident once with all ten records and assesses each pair. Its 76 incident fields include the classified supplier name and the search name after aliases. Each engagement contributes 22 fields. A clear supplier identity conflict yields `NOT_LINKED` even when services match. [LLM input columns](app/linking/docs/input-fields.md)
+For example, an Amazon name match may return ten engagements across hosting, connectivity and backup. Linking sends the incident once with all ten records and assesses each pair. Its 76 incident fields include the classified supplier name and the search name after aliases. The request lists `candidate_number` and the 22 engagement fields once in `engagements.columns`. Each array in `engagements.rows` holds one candidate's values in that order. A clear supplier identity conflict yields `NOT_LINKED` even when services match. [LLM input columns](app/linking/docs/input-fields.md)
 
-For each candidate, Linking gathers evidence about the affected service and the engagement's scope, rates the quality of each source, and records a decision and its rationale. `LINKED` requires defensible evidence from both records. `POSSIBLY_LINKED` requires a concrete service fit and a specific gap or conflict that prevents confirmation. `NOT_LINKED` requires evidence that excludes the candidate. `INSUFFICIENT_EVIDENCE` applies when the available information cannot establish or exclude a service fit, including when only the supplier name matches.
+For each candidate, Linking gathers evidence about the supplier service implicated in the failure and the engagement's scope, rates the quality of each source, and records a decision and its rationale. `LINKED` requires defensible evidence from both records. `POSSIBLY_LINKED` requires a concrete service fit and a specific gap or conflict that prevents confirmation. `NOT_LINKED` requires evidence that excludes the candidate. `INSUFFICIENT_EVIDENCE` applies when the available information cannot establish or exclude a service fit, including when only the supplier name matches.
 
 The prompt prioritises recorded findings, accounts for material conflicts and treats repeated claims as one account. The rationale identifies the decisive fact, conflict or missing detail. Source strength distinguishes broad clues, an identifiable service with uncertain scope, and a clearly established scope. Decision confidence is assessed separately.
 
