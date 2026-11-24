@@ -3,7 +3,6 @@ from fuzzy_match.algorithims import levenshtein
 
 MIN_FUZZY_LENGTH = 5
 MIN_FUZZY_SIMILARITY = 0.72
-MATCH_PRIORITY = {"EXACT": 0, "SUBSTRING": 1, "FUZZY": 2}
 
 
 def fuzzy_partial_match(query, value):
@@ -22,14 +21,14 @@ def fuzzy_partial_match(query, value):
     return False
 
 
-def matching_columns(query, names):
+def matching_columns(query, names, fields):
     """Yield each matching column once, using its strongest method."""
-    for column in ("THIRD_PARTY_NAME", "THIRD_PARTY_NORMALISED_NAME"):
+    for column in (fields["original"], fields["normalised"]):
         _, compact_name = names[column]
         if query == compact_name:
             yield column, "EXACT"
 
-    for column in ("THIRD_PARTY_NORMALISED_NAME", "THIRD_PARTY_NAME"):
+    for column in (fields["normalised"], fields["original"]):
         name, compact_name = names[column]
         if not name or query == compact_name:
             continue
@@ -47,22 +46,17 @@ def record_key(row, id_column, row_number):
     return str(value)
 
 
-def find_candidates(incidents, suppliers):
-    best_matches = {}
+def find_matches(incidents, suppliers, incident_id_column, engagement_fields):
+    """Yield every matching field with its incident key, engagement key, method and source row."""
     for incident_number, (incident, name) in enumerate(incidents):
         query = name.replace(" ", "")
         if not query:
             continue
-        incident_key = record_key(incident, "incident_id", incident_number)
+        incident_key = record_key(incident, incident_id_column, incident_number)
         for supplier_number, (supplier, names) in enumerate(suppliers):
-            for column, match_type in matching_columns(query, names):
-                engagement_key = record_key(supplier, "ENGAGEMENT_ID", supplier_number)
-                pair = (incident_key, engagement_key)
-                priority = MATCH_PRIORITY[match_type]
-                if pair in best_matches and best_matches[pair][0] <= priority:
-                    continue
+            for column, match_type in matching_columns(query, names, engagement_fields):
+                engagement_key = record_key(supplier, engagement_fields["identifier"], supplier_number)
                 row = list(incident.values())
                 row.extend(supplier.values())
                 row.extend([name, column, match_type, supplier[column]])
-                best_matches[pair] = (priority, row)
-    return [row for _, row in best_matches.values()]
+                yield incident_key, engagement_key, match_type, row

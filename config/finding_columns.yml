@@ -1,0 +1,18 @@
+incident:
+  identifier: incident_id
+  classification: class
+  supplier: classified_supplier_name
+
+engagement:
+  identifier: ENGAGEMENT_ID
+  original: THIRD_PARTY_NAME
+  normalised: THIRD_PARTY_NORMALISED_NAME
+
+candidate:
+  search_name: standardised_supplier_name
+  source_field: matched_supplier_column
+  method: match_type
+  source_value: found_name_in_source
+
+invalid_name_report:
+  status: finding_status

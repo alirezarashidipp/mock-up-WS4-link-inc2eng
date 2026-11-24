@@ -1,8 +1,8 @@
 import csv
 
 
-def candidate_headers(incident_headers, supplier_headers):
-    details = ["standardised_supplier_name", "matched_supplier_column", "match_type", "found_name_in_source"]
+def candidate_headers(incident_headers, supplier_headers, fields):
+    details = [fields["search_name"], fields["source_field"], fields["method"], fields["source_value"]]
     headers = list(incident_headers)
     for column in supplier_headers:
         label = column
@@ -15,8 +15,8 @@ def candidate_headers(incident_headers, supplier_headers):
     return headers
 
 
-def save_candidates(path, incident_headers, supplier_headers, candidates):
-    headers = candidate_headers(incident_headers, supplier_headers)
+def save_candidates(path, incident_headers, supplier_headers, candidates, fields):
+    headers = candidate_headers(incident_headers, supplier_headers, fields)
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8-sig", newline="") as stream:
         writer = csv.writer(stream)
@@ -24,9 +24,11 @@ def save_candidates(path, incident_headers, supplier_headers, candidates):
         writer.writerows(candidates)
 
 
-def save_invalid_names(path, invalid_incidents):
+def save_invalid_names(path, invalid_incidents, incident_fields, status_column):
+    id_column = incident_fields["identifier"]
+    name_column = incident_fields["supplier"]
     with path.open("w", encoding="utf-8-sig", newline="") as stream:
         writer = csv.writer(stream)
-        writer.writerow(["incident_id", "classified_supplier_name", "finding_status"])
+        writer.writerow([id_column, name_column, status_column])
         for row in invalid_incidents:
-            writer.writerow([row.get("incident_id"), row["classified_supplier_name"], "invalid name"])
+            writer.writerow([row.get(id_column), row[name_column], "invalid name"])

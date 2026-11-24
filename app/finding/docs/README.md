@@ -12,16 +12,19 @@ Install the dependencies using the project guide, then run this command from the
 
 The entry point performs these steps in order.
 
-1. Load and clean the supplier aliases from YAML.
+1. Load the CSV column mappings and whole-name supplier aliases from YAML.
 2. Read the incident CSV and select supplier-attributed rows.
 3. Clean incident supplier names and apply whole-name aliases.
 4. Read ENG_ALL and prepare its two supplier-name comparison fields.
-5. Compare each selected incident with every engagement record.
-6. Save one candidate per matching incident and engagement ID, write the invalid-name report and print the counts.
+5. Compare each selected incident with every engagement record and yield each matching field.
+6. Deduplicate the matches by incident and engagement ID, keeping the strongest row for each pair.
+7. Save the candidates, write the invalid-name report and print the counts.
 
-Paths are relative to the project root in `finding.py`. Python callers can supply `input_dir` and `output_file` to `main()`. The alias path remains the project configuration path. [Entry point](../../../finding.py)
+Paths are relative to the project root in `finding.py`. Python callers can supply `input_dir`, `output_file` and `columns_file` to `main()`. [Entry point](../../../finding.py)
 
 ## Input files and formats
+
+Edit the values in [finding_columns.yml](../../../config/finding_columns.yml) to match your CSV headers. The keys identify each column's role. The invalid-name report reuses the incident identifier and supplier headers. The examples below use the default mapping. Linking expects its documented headers when consuming Finding output.
 
 | Input | Location | Required headers |
 | --- | --- | --- |
@@ -96,7 +99,7 @@ Finding checks both fields on each engagement and keeps the strongest match for 
 | 2 | Incident query occurs within the reference value | `THIRD_PARTY_NORMALISED_NAME` | `THIRD_PARTY_NAME` | `SUBSTRING` |
 | 3 | Fuzzy similarity against adjacent reference words | `THIRD_PARTY_NORMALISED_NAME` | `THIRD_PARTY_NAME` | `FUZZY` |
 
-For example, when two records for `E1` yield `FUZZY` and `EXACT`, the exact record supplies every engagement column in the output. A separate `E2` with a fuzzy match is also retained. Across equally ranked records for one ID, the first source record wins. [Matching implementation](../match_rows.py)
+For example, when two records for `E1` yield `FUZZY` and `EXACT`, the exact record supplies every engagement column in the output. A separate `E2` with a fuzzy match is also retained. Across equally ranked records for one ID, the first source record wins. [Field matching](../match_rows.py) · [Candidate deduplication](../deduplicate_candidates.py)
 
 ### Fuzzy comparison
 
@@ -158,7 +161,10 @@ The implementation loads tables and candidates into memory and scans all inciden
 | --- | --- |
 | [read_incidents.py](../read_incidents.py), [read_suppliers.py](../read_suppliers.py), [read_files.py](../read_files.py) | Source selection and table parsing |
 | [select_incidents.py](../select_incidents.py) | Incident eligibility |
-| [clean_names.py](../clean_names.py), [replace_names.py](../replace_names.py) | Shared supplier-name cleaning and incident aliases |
+| [clean_names.py](../clean_names.py) | Shared rules for cleaning a single supplier name |
+| [clean_incidents.py](../clean_incidents.py) | Apply the shared cleaner to each incident's classified supplier name |
+| [replace_names.py](../replace_names.py) | Apply whole-name aliases to incident names |
 | [clean_suppliers.py](../clean_suppliers.py) | Reference comparison values |
-| [match_rows.py](../match_rows.py) | Match order, thresholds and candidate collection |
+| [match_rows.py](../match_rows.py) | Compare supplier fields and yield matches in source order |
+| [deduplicate_candidates.py](../deduplicate_candidates.py) | Keep the strongest candidate per incident and engagement ID |
 | [save_csv.py](../save_csv.py) | Output headers and candidate file writing |

@@ -40,11 +40,3 @@ def clean_name(value):
     name = str(value).lower()
     name = remove_symbols(name)
     return remove_words(name)
-
-
-def clean_incidents(rows):
-    incidents = []
-    for row in rows:
-        name = clean_name(row["classified_supplier_name"])
-        incidents.append((row, name))
-    return incidents

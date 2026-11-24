@@ -11,6 +11,8 @@ Both stages run from the project root and write to `data/output/`.
 
 ## Run the finder
 
+Finding reads its input and output CSV header names from [finding_columns.yml](config/finding_columns.yml). The defaults below produce the candidate format used by Linking.
+
 1. Put `CLASSIFIED_INCIDENTS.csv` in `data/input/`. It must contain the headers `class` and `classified_supplier_name`.
 2. In the same folder, supply `ENG_ALL.csv`. The required fields are `ENGAGEMENT_ID`, `THIRD_PARTY_NAME` and `THIRD_PARTY_NORMALISED_NAME`. Other engagement fields are carried into the output.
 3. Use UTF-8, comma-separated CSV files. The incident file has headers in the first row. For `ENG_ALL`, field names can run across the first row (one engagement per row) or down the first column (one engagement per column).
@@ -29,7 +31,7 @@ For subsequent runs, use the last command.
 
 Open `data/output/engagement_candidates.csv`. Finding selects rows whose `class` is exactly `SUPPLIER`. It applies the same cleaning rules to the incident name and both engagement name fields, then applies whole-name YAML aliases to the incident name only. For example, `B.T.` becomes `british telecom`. The candidate file retains the original source values.
 
-Each distinct matching engagement ID gets a row for that incident. When the same ID matches through multiple columns or source records, Finding keeps the strongest method in the order `EXACT`, `SUBSTRING`, `FUZZY`. The earliest source record wins a tie. The candidate file adds four fields to the selected source records.
+Before saving the CSV, Finding keeps one row per incident and matching engagement ID. When the same ID matches through multiple columns or source records, the strongest method wins in the order `EXACT`, `SUBSTRING`, `FUZZY`. The earliest source record wins a tie. The candidate file adds four fields to the selected source records. [Candidate deduplication](app/finding/deduplicate_candidates.py)
 
 - `standardised_supplier_name` holds the incident name used in the comparison.
 - `matched_supplier_column` identifies the first supplier column that matched in priority order.
