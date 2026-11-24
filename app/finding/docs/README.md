@@ -90,9 +90,9 @@ An alias applies once to a whole, nonempty cleaned incident name. `GCP` becomes 
 
 ## Engagement name preparation
 
-For each configured field with a usable value, Finding keeps the cleaned words for fuzzy comparison and a copy without spaces for equality and substring checks. The original source row supplies the candidate's output values. [Reference cleaning](../clean_suppliers.py)
+For each configured field with a usable value, Finding keeps the cleaned words for whole-word and fuzzy comparisons. It also keeps a copy without spaces for full-name equality and longer substring searches. The original source row supplies the candidate's output values. [Reference cleaning](../clean_suppliers.py)
 
-At matching time, whitespace is also removed from the incident's cleaned, replaced name. This creates the comparison query. The candidate file's `standardised_supplier_name` retains the readable spaces from the earlier step.
+At matching time, Finding removes spaces from the cleaned incident name after alias replacement. The length of this query determines the substring rule and whether fuzzy matching is available. The candidate file's `standardised_supplier_name` retains the readable spaces from the earlier step.
 
 | Value | Example |
 | --- | --- |
@@ -108,9 +108,9 @@ Finding compares the incident search name with each configured field in YAML ord
 
 | Priority | Comparison | Output label |
 | --- | --- | --- |
-| 1 | Whole comparison strings are equal | `EXACT` |
-| 2 | Incident query occurs within the reference value | `SUBSTRING` |
-| 3 | Fuzzy similarity against adjacent reference words reaches the threshold | `FUZZY` |
+| 1 | The query equals the entire cleaned reference field with spaces removed | `EXACT` |
+| 2 | For 1–4 characters, the query equals one word in the cleaned reference field. For 5 or more, it occurs anywhere in the field with spaces removed. | `SUBSTRING` |
+| 3 | A query of at least 5 characters reaches the fuzzy similarity threshold against adjacent reference words | `FUZZY` |
 
 For example, an `AXA` incident matches `THIRD_PARTY_NAME = AXA UK` by substring and `PRAD_NAME = AXA` exactly on the same engagement. The saved candidate records `EXACT`, `PRAD_NAME` and the source value `AXA`.
 
@@ -164,9 +164,10 @@ The sibling report `<output-stem>_invalid_names.csv` records `incident_id`, the 
 | `Microsfot` versus `Microsoft Ltd` | The fuzzy pass can produce `FUZZY`. |
 | `IBM` versus `IBN` | The query is too short for the fuzzy pass. |
 | `BT` versus `btartbox` | The alias changes the query to `britishtelecom`. This pair produces zero matches. |
-| `XY` versus `XYartbox` | The short name has no alias. The literal substring pass produces `SUBSTRING`. |
+| `ICE` versus `ICE Data Services`, or `INE` versus `UK-INE` | Each query is a complete word after cleaning. Both pairs produce `SUBSTRING`. |
+| `ICE` versus `Office Supplies`, `INE` versus `Online`, or `XY` versus `XYartbox` | Each query occurs inside a longer word. These pairs produce zero matches. |
 | Several services from one supplier | All distinct matching engagement IDs become candidates. |
-| An abbreviation outside the alias file | Exact, substring and fuzzy comparisons determine the result. |
+| An abbreviation outside the alias file | Finding searches for the cleaned abbreviation using the rules for its length. |
 
 Removing common words can make different supplier names equal. For example, `Acme Holdings` and `Acme Solutions` both reduce to `acme`. Supplier status, geography, description and service category are carried forward. Retrieval uses the configured search fields.
 

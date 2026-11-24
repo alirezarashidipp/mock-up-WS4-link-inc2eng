@@ -50,6 +50,7 @@
       <h2>Compare the configured engagement fields</h2>
       <p>Read <code>ENG_ALL.csv</code>. Clean each available field listed in <code>engagement.search_columns_eng</code> and compare it with the incident search name. Each matching field supplies its strongest result to deduplication.</p>
       <p class="example"><code>microsoft</code> against <code>Microsoft</code> → <strong>EXACT</strong><br>Against <code>Microsoft UK Ltd</code> → <strong>SUBSTRING</strong></p>
+      <p>For a search name of one to four characters after alias replacement and space removal, a substring must match a whole word. For example, <code>ICE</code> matches <code>ICE Data Services</code> and skips <code>Office Supplies</code>.</p>
     </li>
     <li>
       <h2>Recover spelling errors with fuzzy matching</h2>

@@ -81,6 +81,42 @@ class FindingTests(TestCase):
                 ("05", "SUBSTRING", "Microsoft UK", self.search_fields[0], "substring tie across fields"),
             ])
 
+    def test_short_substring_requires_a_whole_word_in_the_matching_field(self):
+        incidents = [("I1", "SUPPLIER", "ICE"), ("I2", "SUPPLIER", "INE")]
+        engagements = [
+            ("01", "ICE Ltd.", "", ""),
+            ("02", "Office Supplies", "ICE Data Services", ""),
+            ("03", "Basic East", "ICEGroup", ""),
+            ("04", "Online", "UK-INE", ""),
+            ("05", "Office Supplies", "Engineering", ""),
+        ]
+        rows = self.run_finding(incidents, engagements)
+        actual = [(row[self.incident["supplier"]], row[self.engagement["identifier"]],
+                   row[self.candidate["method"]], row[self.candidate["source_value"]]) for row in rows]
+        self.assertEqual(actual, [
+            ("ICE", "01", "EXACT", "ICE Ltd."),
+            ("ICE", "02", "SUBSTRING", "ICE Data Services"),
+            ("INE", "04", "SUBSTRING", "UK-INE"),
+        ])
+
+    def test_substring_length_cutoff_uses_the_cleaned_query(self):
+        incidents = [
+            ("I1", "SUPPLIER", "X"), ("I2", "SUPPLIER", "XY"),
+            ("I3", "SUPPLIER", "Apex Ltd."), ("I4", "SUPPLIER", "Orion"),
+        ]
+        engagements = [
+            ("01", "X Press", "", ""), ("02", "XY West", "", ""),
+            ("03", "EMEA Apex", "", ""), ("04", "NorthOrionCloud", "", ""),
+            ("05", "Xpress", "XYartbox", ""), ("06", "ApexCloud", "Apet", ""),
+        ]
+        rows = self.run_finding(incidents, engagements)
+        actual = [(row[self.incident["identifier"]], row[self.engagement["identifier"]],
+                   row[self.candidate["method"]]) for row in rows]
+        self.assertEqual(actual, [
+            ("I1", "01", "SUBSTRING"), ("I2", "02", "SUBSTRING"),
+            ("I3", "03", "SUBSTRING"), ("I4", "04", "SUBSTRING"),
+        ])
+
     def test_shared_cleaning_and_incident_only_alias(self):
         incidents = [
             ("I1", "SUPPLIER", "B.T."), ("I2", "SUPPLIER", "North & Star 24 Holdings"),

@@ -1,6 +1,7 @@
 from fuzzy_match.algorithims import levenshtein
 
 
+MAX_SHORT_NAME_LENGTH = 4
 MIN_FUZZY_LENGTH = 5
 MIN_FUZZY_SIMILARITY = 0.72
 
@@ -27,7 +28,8 @@ def matching_columns(query, names):
         if query == compact_name:
             yield column, "EXACT"
         elif query in compact_name:
-            yield column, "SUBSTRING"
+            if len(query) > MAX_SHORT_NAME_LENGTH or query in name.split():
+                yield column, "SUBSTRING"
         elif len(query) >= MIN_FUZZY_LENGTH and fuzzy_partial_match(query, name):
             yield column, "FUZZY"
 
