@@ -34,8 +34,8 @@ def build_engagement_table(engagements):
 
 def request_decision(client, model, incident, engagements, definitions, prompt, temperature):
     payload = {
-        "field_definitions": {"engagement": definitions["engagement"]},
         "incident": build_incident_fields(incident, definitions["incident"]),
+        "field_definitions": {"engagement": definitions["engagement"]},
         "engagements": build_engagement_table(engagements),
     }
     response = client.chat.completions.parse(

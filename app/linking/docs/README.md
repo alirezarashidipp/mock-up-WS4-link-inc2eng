@@ -58,7 +58,7 @@ Requests run sequentially. All candidates for an incident travel together. Ident
 
 ## What the model receives and returns
 
-The `incident` list has one entry for each of the 76 selected fields. Each entry gives the `column_name`, its English `definition` and the source `value`. An incident citation uses the column name and an excerpt from that value.
+The request starts with the `incident` list, followed by `field_definitions` and then `engagements`. Each of the 76 incident entries gives the `column_name`, its English `definition` and the source `value`. An incident citation uses the column name and an excerpt from that value.
 
 The engagement definitions appear once in `field_definitions.engagement`. The `engagements.columns` list starts with `candidate_number`, followed by the 22 selected engagement field names. Each array in `engagements.rows` holds one candidate's values in that order. Across both records, missing or whitespace-only values become JSON `null`. Other values retain their source content, including `incident_id` and `ENGAGEMENT_ID`.
 

@@ -108,6 +108,7 @@ class LinkingTests(TestCase):
         calls = self.client.chat.completions.parse.call_args_list
         self.assertEqual(len(calls), 2)
         payload = json.loads(calls[0].kwargs["messages"][1]["content"])
+        self.assertEqual(list(payload), ["incident", "field_definitions", "engagements"])
         definitions = linking.read_definitions()
         source_incident = {"incident_id": "001", "incident_description": incident}
         expected_fields = [

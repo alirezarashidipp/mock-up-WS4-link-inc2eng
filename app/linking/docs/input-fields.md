@@ -4,12 +4,12 @@ Linking reads `data/output/engagement_candidates.csv`. The entry point calls `re
 
 ## From candidate file rows to one request
 
-One request contains three JSON properties.
+The request JSON contains these three properties in the order shown.
 
 | Property | Content |
 | --- | --- |
-| `field_definitions` | Its `engagement` object contains the English definitions for the 22 selected engagement columns. |
 | `incident` | A list of the 76 selected incident fields. Each entry contains its source `column_name`, English `definition` and source `value`. |
+| `field_definitions` | Its `engagement` object contains the English definitions for the 22 selected engagement columns. |
 | `engagements` | A table with one shared `columns` list and one array in `rows` per distinct candidate. |
 
 The field lists in `INCIDENT_FIELDS` and `ENGAGEMENT_FIELDS` determine selection and order. The two YAML files supply the definitions for those fields. An incident field with a missing value still carries its name and definition, with `value` set to `null`. Every engagement row follows the order in `engagements.columns`, including `null` cells. [Selected fields](../fields.py) · [Request builder](../decision.py)
