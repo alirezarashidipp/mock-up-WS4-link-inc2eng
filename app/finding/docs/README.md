@@ -26,7 +26,7 @@ Paths are relative to the project root in `finding.py`. Python callers can suppl
 | Input | Location | Required headers |
 | --- | --- | --- |
 | Incidents | `data/input/CLASSIFIED_INCIDENTS.csv` | `class`, `classified_supplier_name` |
-| Engagements | Exactly one of `data/input/ENG_ALL.csv` and `data/input/ENG_ALL.xlsx` | `ENGAGEMENT_ID`, `THIRD_PARTY_NAME`, `THIRD_PARTY_NORMALISED_NAME` |
+| Engagements | `data/input/ENG_ALL.csv` | `ENGAGEMENT_ID`, `THIRD_PARTY_NAME`, `THIRD_PARTY_NORMALISED_NAME` |
 
 Finding carries all supplied source columns into its output. The subsequent Linking stage also needs a nonblank `incident_id` and `ENGAGEMENT_ID` on each candidate row. Finding checks the engagement identifier header but allows an individual identifier to be blank.
 
@@ -37,9 +37,9 @@ CSV files use comma separators and UTF-8, with or without a BOM. Incident header
 | Horizontal | First row | Following rows |
 | Vertical | First column | Following columns |
 
-The engagement reader first looks for all required names in the first row. Otherwise it checks the first column, discards completely empty field rows, and transposes when all required names appear there. Short vertical rows are padded with empty values. Excel input uses the active worksheet and cached formula results.
+The engagement reader first looks for all required names in the first row. Otherwise it checks the first column, discards completely empty field rows, and transposes when all required names appear there. Short vertical rows are padded with empty values.
 
-Header spelling and case must match. Blank or duplicate headers are rejected. Completely empty data rows are skipped. A nonempty row with a different number of fields from the headers is rejected. Supplying both engagement files, or neither, produces an error. [Table reader](../read_files.py) · [Engagement reader](../read_suppliers.py)
+Header spelling and case must match. Blank or duplicate headers are rejected. Completely empty data rows are skipped. A nonempty row with a different number of fields from the headers is rejected. [Table reader](../read_files.py) · [Engagement reader](../read_suppliers.py)
 
 ## Incident selection and shared name cleaning
 
@@ -58,7 +58,7 @@ The incident name and both engagement name fields use the following rules.
 | `LEGAL_SUFFIXES` | `company`, `corp`, `corporation`, `inc`, `incorporated`, `limited`, `llc`, `llp`, `ltd`, `plc` |
 | `SPECIAL_CHARACTERS` | Semicolons, commas, colon, Arabic semicolon and comma, round/square/curly brackets, hyphen/en dash/em dash, underscore, slash, backslash, vertical bar, and straight/curly double quotation marks |
 
-Listed words are removed wherever they appear. Digits and apostrophes are retained. For example, `A.B.C. & Studio 24 Ltd.` becomes `abc studio 24`. [Shared cleaning rules](../clean_incidents.py)
+Listed words are removed wherever they appear. Digits and apostrophes are retained. For example, `A.B.C. & Studio 24 Ltd.` becomes `abc studio 24`. [Shared cleaning rules](../clean_names.py)
 
 ## Whole-name aliases
 
@@ -121,7 +121,7 @@ The output is `data/output/engagement_candidates.csv`, a UTF-8 CSV with a BOM an
 | `match_type` | `EXACT`, `SUBSTRING` or `FUZZY` |
 | `found_name_in_source` | Full original value from that engagement field |
 
-An engagement header receives the prefix `ENG.` when it conflicts with an incident header or one of the four added names. Any remaining combined-header conflict is rejected. CSV quoting preserves commas, quotes and embedded newlines. Source values are preserved as loaded, including cached Excel formula values.
+An engagement header receives the prefix `ENG.` when it conflicts with an incident header or one of the four added names. Any remaining combined-header conflict is rejected. CSV quoting preserves commas, quotes and embedded newlines. Source values are preserved as loaded, including leading zeros in identifiers.
 
 Pairs appear in first-encounter order while scanning incidents and then engagements. A stronger match for an existing pair replaces its row in place. All distinct matching IDs remain eligible for each incident. For standalone Finding inputs with a missing identifier, the corresponding source row serves as its own identity. Linking requires both IDs. A run with zero candidates produces a header-only candidate file. [CSV writer](../save_csv.py)
 
@@ -147,7 +147,7 @@ The implementation loads tables and candidates into memory and scans all inciden
 
 | Symptom | Check |
 | --- | --- |
-| Missing engagement file error | Supply exactly one supported ENG_ALL file in `data/input/`. |
+| Missing engagement file error | Supply `data/input/ENG_ALL.csv`. |
 | Missing-column or duplicate-header error | Inspect spelling, case, orientation and headers. |
 | Wrong number of fields | Check comma quoting and CSV row width. |
 | Zero candidates | Check the exact `SUPPLIER` class, cleaned name, aliases and reference fields. |
@@ -158,7 +158,7 @@ The implementation loads tables and candidates into memory and scans all inciden
 | --- | --- |
 | [read_incidents.py](../read_incidents.py), [read_suppliers.py](../read_suppliers.py), [read_files.py](../read_files.py) | Source selection and table parsing |
 | [select_incidents.py](../select_incidents.py) | Incident eligibility |
-| [clean_incidents.py](../clean_incidents.py), [replace_names.py](../replace_names.py) | Incident cleaning and aliases |
+| [clean_names.py](../clean_names.py), [replace_names.py](../replace_names.py) | Shared supplier-name cleaning and incident aliases |
 | [clean_suppliers.py](../clean_suppliers.py) | Reference comparison values |
 | [match_rows.py](../match_rows.py) | Match order, thresholds and candidate collection |
 | [save_csv.py](../save_csv.py) | Output headers and candidate file writing |

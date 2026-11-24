@@ -24,7 +24,7 @@ Install the project's dependencies using the setup commands in the root README, 
 .\.venv\Scripts\python.exe linking.py
 ```
 
-The default input is a UTF-8 CSV. Headers must be populated and unique, and must exclude the eight assessment column names. Each populated row requires an `incident_id` and an `ENGAGEMENT_ID`. A header-only candidate file produces a header-only CSV with zero model calls.
+Linking reads UTF-8 CSV candidate files. Headers must be populated and unique, and must exclude the eight assessment column names. Each populated row requires an `incident_id` and an `ENGAGEMENT_ID`. A header-only candidate file produces a header-only CSV with zero model calls.
 
 The GPT-5.1 configuration requested for this project uses these settings, alongside the API key in the local environment.
 
@@ -150,7 +150,7 @@ main(output_file=Path("data/output/engagement_links_review.csv"))
 
 | Reported condition | Meaning and next action |
 | --- | --- |
-| Blank or duplicate headers, or existing output columns in the candidate sheet | Supply the original candidate sheet with unique source headers. |
+| Blank or duplicate headers, or existing output columns in the candidate CSV | Supply the original candidate CSV with unique source headers. |
 | Missing incident or engagement ID | Populate the required ID in each nonblank candidate row. |
 | Incident fields differ between rows | Resolve conflicting copies of that incident's selected fields. |
 | Missing connection settings or invalid temperature text | Check the required environment values. Temperature is parsed with `float()`. |

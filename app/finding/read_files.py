@@ -1,19 +1,12 @@
 import csv
 from itertools import zip_longest
 
-from openpyxl import load_workbook
-
 
 def read_table(path, required_columns, allow_vertical_headers=False):
-    if path.suffix == ".xlsx":
-        workbook = load_workbook(path, read_only=True, data_only=True)
-        try:
-            values = list(workbook.active.values)
-        finally:
-            workbook.close()
-    else:
-        with path.open(encoding="utf-8-sig", newline="") as stream:
-            values = list(csv.reader(stream))
+    if path.suffix.lower() != ".csv":
+        raise ValueError(f"Expected a CSV input, got {path.name}.")
+    with path.open(encoding="utf-8-sig", newline="") as stream:
+        values = list(csv.reader(stream))
 
     if not values:
         raise ValueError(f"{path.name} is empty.")

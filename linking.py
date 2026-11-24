@@ -3,7 +3,6 @@ from pathlib import Path
 
 import yaml
 from filelock import FileLock
-from openpyxl import load_workbook
 
 from app.linking.decision import request_decision
 from app.linking.fields import ENGAGEMENT_FIELDS, INCIDENT_FIELDS
@@ -60,29 +59,21 @@ def link_incidents(cases, rows, headers, output_file):
 
 def read_candidates(candidates_file):
     path = Path(candidates_file)
-    if path.suffix.lower() == ".csv":
-        csv.field_size_limit(max(csv.field_size_limit(), 2**31 - 1))
-        with path.open(encoding="utf-8-sig", newline="") as stream:
-            reader = csv.reader(stream, strict=True)
-            headers = next(reader, [])
-            rows = [row or [""] * len(headers) for row in reader]
-        if any(len(row) != len(headers) for row in rows):
-            raise ValueError("A candidate CSV row has the wrong number of fields.")
-    else:
-        workbook = load_workbook(path)
-        try:
-            sheet = workbook.active
-            headers = [str(cell.value) if cell.value is not None else "" for cell in sheet[1]]
-            rows = list(sheet.iter_rows(min_row=2, values_only=True))
-        finally:
-            workbook.close()
+    if path.suffix.lower() != ".csv":
+        raise ValueError("Choose a CSV candidate input.")
+    csv.field_size_limit(max(csv.field_size_limit(), 2**31 - 1))
+    with path.open(encoding="utf-8-sig", newline="") as stream:
+        reader = csv.reader(stream, strict=True)
+        headers = next(reader, [])
+        rows = [row or [""] * len(headers) for row in reader]
+    if any(len(row) != len(headers) for row in rows):
+        raise ValueError("A candidate CSV row has the wrong number of fields.")
     if not headers or not all(headers) or len(headers) != len(set(headers)):
         raise ValueError("The candidate file contains blank or duplicate headers.")
     if any(name in headers for name in OUTPUT_COLUMNS):
         raise ValueError("The candidate file already contains a linking output column.")
     cases = read_cases(rows, headers)
-    source_rows = [["" if v is None else str(v) for v in row] for row in rows]
-    return headers, source_rows, cases
+    return headers, rows, cases
 
 
 def main(candidates_file=CANDIDATES, output_file=OUTPUT):

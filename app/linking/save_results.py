@@ -34,7 +34,7 @@ def save_progress(path, headers, rows):
             stream.flush()
             os.fsync(stream.fileno())
         temporary.replace(pending)
-        # If Excel has locked the CSV, the completed snapshot is available on restart.
+        # If another program has locked the CSV, the completed snapshot is available on restart.
         pending.replace(path)
     finally:
         temporary.unlink(missing_ok=True)
@@ -60,17 +60,17 @@ def load_progress(path, headers, source_rows):
             raise ValueError(f"{saved.name} has different headers. Use a separate output for this input.")
         rows = list(reader)
     if len(rows) != len(source_rows):
-        raise ValueError(f"{saved.name} has a different row count from the candidate workbook.")
+        raise ValueError(f"{saved.name} has a different row count from the candidate CSV.")
     for number, (row, source) in enumerate(zip(rows, source_rows), start=2):
         if len(row) != len(saved_headers) or row[:len(headers)] != source:
-            raise ValueError(f"{saved.name} differs from the candidate workbook at row {number}.")
+            raise ValueError(f"{saved.name} differs from the candidate CSV at row {number}.")
     if saved_headers == previous_headers:
         rows = [row[:-2] for row in rows]
         save_progress(path, output_headers, rows)
     elif saved_headers == legacy_headers:
         if any(any(row[len(headers):]) for row in rows):
             raise ValueError(f"{saved.name} contains assessments under the previous decision rules. "
-                             "Use a separate output CSV to assess this workbook under the current rules.")
+                             "Use a separate output CSV to assess this candidate CSV under the current rules.")
         save_progress(path, output_headers, rows)
     elif saved == pending:
         pending.replace(path)

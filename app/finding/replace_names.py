@@ -1,6 +1,6 @@
 import yaml
 
-from .clean_incidents import clean_name
+from .clean_names import clean_name
 
 
 def read_replacements(path):
