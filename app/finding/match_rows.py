@@ -21,18 +21,12 @@ def fuzzy_partial_match(query, value):
     return False
 
 
-def matching_columns(query, names, fields):
-    """Yield each matching column once, using its strongest method."""
-    for column in (fields["original"], fields["normalised"]):
-        _, compact_name = names[column]
+def matching_columns(query, names):
+    """Yield each matching field in configured order with its strongest method."""
+    for column, (name, compact_name) in names.items():
         if query == compact_name:
             yield column, "EXACT"
-
-    for column in (fields["normalised"], fields["original"]):
-        name, compact_name = names[column]
-        if not name or query == compact_name:
-            continue
-        if query in compact_name:
+        elif query in compact_name:
             yield column, "SUBSTRING"
         elif len(query) >= MIN_FUZZY_LENGTH and fuzzy_partial_match(query, name):
             yield column, "FUZZY"
@@ -46,7 +40,7 @@ def record_key(row, id_column, row_number):
     return str(value)
 
 
-def find_matches(incidents, suppliers, incident_id_column, engagement_fields):
+def find_matches(incidents, suppliers, incident_id_column, engagement_id_column):
     """Yield every matching field with its incident key, engagement key, method and source row."""
     for incident_number, (incident, name) in enumerate(incidents):
         query = name.replace(" ", "")
@@ -54,8 +48,8 @@ def find_matches(incidents, suppliers, incident_id_column, engagement_fields):
             continue
         incident_key = record_key(incident, incident_id_column, incident_number)
         for supplier_number, (supplier, names) in enumerate(suppliers):
-            for column, match_type in matching_columns(query, names, engagement_fields):
-                engagement_key = record_key(supplier, engagement_fields["identifier"], supplier_number)
+            for column, match_type in matching_columns(query, names):
+                engagement_key = record_key(supplier, engagement_id_column, supplier_number)
                 row = list(incident.values())
                 row.extend(supplier.values())
                 row.extend([name, column, match_type, supplier[column]])

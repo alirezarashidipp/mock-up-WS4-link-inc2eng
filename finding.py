@@ -25,7 +25,7 @@ def read_columns(path):
         columns = yaml.safe_load(stream)
     required = {
         "incident": ("identifier", "classification", "supplier"),
-        "engagement": ("identifier", "original", "normalised"),
+        "engagement": ("identifier",),
         "candidate": ("search_name", "source_field", "method", "source_value"),
         "invalid_name_report": ("status",),
     }
@@ -39,6 +39,14 @@ def read_columns(path):
                 raise ValueError(f"Provide a CSV header for {section}.{role}.")
         if len({fields[role] for role in roles}) != len(roles):
             raise ValueError(f"Duplicate CSV headers in {section}.")
+    search_columns = columns["engagement"].get("search_columns_eng")
+    if not isinstance(search_columns, list) or not search_columns:
+        raise ValueError("Provide a nonempty list for engagement.search_columns_eng.")
+    if any(not isinstance(name, str) or not name.strip() for name in search_columns):
+        raise ValueError("Each entry in search_columns_eng must be a nonblank CSV header.")
+    if len(search_columns) != len(set(search_columns)):
+        raise ValueError("Duplicate CSV headers in search_columns_eng.")
+
     incident = columns["incident"]
     if columns["invalid_name_report"]["status"] in (incident["identifier"], incident["supplier"]):
         raise ValueError("Invalid-name report headers must be distinct.")
@@ -61,9 +69,9 @@ def main(input_dir=INPUT, output_file=OUTPUT, columns_file=COLUMNS):
     incidents = replace_incident_names(incidents, replacements)
 
     supplier_headers, suppliers = read_suppliers(input_dir, engagement_fields)
-    suppliers = clean_suppliers(suppliers, engagement_fields)
+    suppliers = clean_suppliers(suppliers, engagement_fields["search_columns_eng"])
 
-    matches = find_matches(incidents, suppliers, incident_fields["identifier"], engagement_fields)
+    matches = find_matches(incidents, suppliers, incident_fields["identifier"], engagement_fields["identifier"])
     candidates = deduplicate_candidates(matches)
     save_candidates(output_file, incident_headers, supplier_headers, candidates, columns["candidate"])
 

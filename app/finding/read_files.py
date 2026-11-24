@@ -2,7 +2,16 @@ import csv
 from itertools import zip_longest
 
 
-def read_table(path, required_columns, allow_vertical_headers=False):
+def missing_column_message(headers, required_columns, search_columns):
+    for column in required_columns:
+        if column not in headers:
+            return f"is missing column {column}."
+    if search_columns and not any(column in headers for column in search_columns):
+        return f"requires at least one configured search column ({', '.join(search_columns)})."
+    return ""
+
+
+def read_table(path, required_columns, allow_vertical_headers=False, search_columns=()):
     if path.suffix.lower() != ".csv":
         raise ValueError(f"Expected a CSV input, got {path.name}.")
     with path.open(encoding="utf-8-sig", newline="") as stream:
@@ -10,17 +19,18 @@ def read_table(path, required_columns, allow_vertical_headers=False):
 
     if not values:
         raise ValueError(f"{path.name} is empty.")
-    if allow_vertical_headers and not all(column in values[0] for column in required_columns):
+    missing = missing_column_message(values[0], required_columns, search_columns)
+    if allow_vertical_headers and missing:
         field_rows = [row for row in values if any(value not in (None, "") for value in row)]
         first_column = [row[0] for row in field_rows]
-        if all(column in first_column for column in required_columns):
+        if not missing_column_message(first_column, required_columns, search_columns):
             values = list(zip_longest(*field_rows, fillvalue=None))
+            missing = ""
     headers = list(values[0])
     if not all(headers) or len(set(headers)) != len(headers):
         raise ValueError(f"{path.name} contains blank or duplicate column names.")
-    for column in required_columns:
-        if column not in headers:
-            raise ValueError(f"{path.name} is missing column {column}.")
+    if missing:
+        raise ValueError(f"{path.name} {missing}")
 
     rows = []
     for number, values_row in enumerate(values[1:], start=2):

@@ -5,8 +5,10 @@ incident:
 
 engagement:
   identifier: ENGAGEMENT_ID
-  original: THIRD_PARTY_NAME
-  normalised: THIRD_PARTY_NORMALISED_NAME
+  search_columns_eng:
+    - THIRD_PARTY_NAME
+    - THIRD_PARTY_NORMALISED_NAME
+    - PRAD_NAME
 
 candidate:
   search_name: standardised_supplier_name

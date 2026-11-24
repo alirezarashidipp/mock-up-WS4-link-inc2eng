@@ -47,8 +47,8 @@
       <p class="example">YAML entry &nbsp; <code>azure: Microsoft</code><br>Search name &nbsp; <strong>microsoft</strong></p>
     </li>
     <li>
-      <h2>Compare the two engagement name fields</h2>
-      <p>Read <code>ENG_ALL.csv</code>. Apply the same cleaner to both reference fields. Compare each field with the incident search name using equality, substring and fuzzy matching in that order.</p>
+      <h2>Compare the configured engagement fields</h2>
+      <p>Read <code>ENG_ALL.csv</code>. Clean each available field listed in <code>engagement.search_columns_eng</code> and compare it with the incident search name. Each matching field supplies its strongest result to deduplication.</p>
       <p class="example"><code>microsoft</code> against <code>Microsoft</code> → <strong>EXACT</strong><br>Against <code>Microsoft UK Ltd</code> → <strong>SUBSTRING</strong></p>
     </li>
     <li>

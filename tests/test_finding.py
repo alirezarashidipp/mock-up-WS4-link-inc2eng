@@ -5,6 +5,8 @@ from unittest import TestCase
 
 import yaml
 
+from app.finding.clean_suppliers import clean_suppliers
+from app.finding.match_rows import find_matches
 from finding import COLUMNS, main, read_columns
 
 
@@ -25,23 +27,29 @@ class FindingTests(TestCase):
         directory = TemporaryDirectory()
         self.addCleanup(directory.cleanup)
         self.folder = Path(directory.name)
-        self.columns_file = COLUMNS
-        self.use_columns(read_columns(COLUMNS))
+        self.columns_file = self.folder / "columns.yml"
+        self.extra_field = "source note"
+        columns = read_columns(COLUMNS)
+        columns["engagement"]["search_columns_eng"] = ["name A", "name B"]
+        self.use_columns(columns)
         self.output = self.folder / "candidates.csv"
         self.invalid = self.folder / "candidates_invalid_names.csv"
 
     def use_columns(self, columns):
+        self.columns_file.write_text(yaml.safe_dump(columns), encoding="utf-8")
         self.incident = columns["incident"]
         self.engagement = columns["engagement"]
         self.candidate = columns["candidate"]
         self.status = columns["invalid_name_report"]["status"]
-        self.extra_field = self.engagement["original"] + "_notes"
+        self.search_fields = self.engagement["search_columns_eng"]
 
-    def run_finding(self, incidents, engagements):
+    def run_finding(self, incidents, engagements, source_fields=None):
+        if source_fields is None:
+            source_fields = [*self.search_fields, self.extra_field]
         write_table(self.folder / "CLASSIFIED_INCIDENTS.csv",
                     [self.incident["identifier"], self.incident["classification"], self.incident["supplier"]], incidents)
         write_table(self.folder / "ENG_ALL.csv",
-                    [self.engagement["identifier"], self.engagement["original"], self.engagement["normalised"], self.extra_field],
+                    [self.engagement["identifier"], *source_fields],
                     engagements)
         main(self.folder, self.output, columns_file=self.columns_file)
         return read_rows(self.output)
@@ -66,11 +74,11 @@ class FindingTests(TestCase):
                        row[self.candidate["source_field"]], row[self.extra_field])
                       for row in rows if row[self.incident["identifier"]] == incident_id]
             self.assertEqual(actual, [
-                ("01", "EXACT", "Microsoft Ltd.", self.engagement["normalised"], "first exact"),
-                ("02", "SUBSTRING", "Microsoft UK", self.engagement["normalised"], "substring"),
-                ("03", "FUZZY", "Microsfot", self.engagement["original"], "fuzzy"),
-                ("04", "EXACT", "Microsoft", self.engagement["original"], "exact tie across fields"),
-                ("05", "SUBSTRING", "Microsoft US", self.engagement["normalised"], "substring tie across fields"),
+                ("01", "EXACT", "Microsoft Ltd.", self.search_fields[1], "first exact"),
+                ("02", "SUBSTRING", "Microsoft UK", self.search_fields[1], "substring"),
+                ("03", "FUZZY", "Microsfot", self.search_fields[0], "fuzzy"),
+                ("04", "EXACT", "Microsoft", self.search_fields[0], "exact tie across fields"),
+                ("05", "SUBSTRING", "Microsoft UK", self.search_fields[0], "substring tie across fields"),
             ])
 
     def test_shared_cleaning_and_incident_only_alias(self):
@@ -110,8 +118,7 @@ class FindingTests(TestCase):
         for section, fields in columns.items():
             for role in fields:
                 fields[role] = f"{section} {role}"
-        self.columns_file = self.folder / "columns.yml"
-        self.columns_file.write_text(yaml.safe_dump(columns), encoding="utf-8")
+        columns["engagement"]["search_columns_eng"] = ["renamed company", "renamed supplier"]
         self.use_columns(columns)
 
         incidents = [("01", "SUPPLIER", "B.T."), ("02", "SUPPLIER", "Ltd")]
@@ -122,8 +129,69 @@ class FindingTests(TestCase):
         self.assertEqual(rows[0][self.engagement["identifier"]], "003")
         self.assertEqual(rows[0][self.candidate["method"]], "EXACT")
         self.assertEqual(rows[0][self.candidate["search_name"]], "british telecom")
-        self.assertEqual(rows[0][self.candidate["source_field"]], self.engagement["normalised"])
+        self.assertEqual(rows[0][self.candidate["source_field"]], self.search_fields[1])
         self.assertEqual(rows[0][self.candidate["source_value"]], "British Telecom")
         self.assertEqual(read_rows(self.invalid), [
             {self.incident["identifier"]: "02", self.incident["supplier"]: "Ltd", self.status: "invalid name"},
         ])
+
+    def test_every_matching_field_reaches_deduplication_in_yaml_order(self):
+        fields = ["trading name", "region name", "brand name", "legal name"]
+        columns = read_columns(self.columns_file)
+        columns["engagement"]["search_columns_eng"] = [fields[2], fields[1], fields[3], fields[0], "absent"]
+        self.use_columns(columns)
+        values = ["Microsoft Ltd.", "Microsoft UK", "Microsfot", "Microsoft Inc."]
+
+        # The CSV order differs from the search order, and one configured header is absent.
+        supplier = dict(zip(fields, values))
+        supplier[self.engagement["identifier"]] = "007"
+        suppliers = clean_suppliers([supplier], self.search_fields)
+        incident = {self.incident["identifier"]: "I1"}
+        matches = find_matches([(incident, "microsoft")], suppliers,
+                               self.incident["identifier"], self.engagement["identifier"])
+        raw = [(row[-3], method) for _, _, method, row in matches]
+        self.assertEqual(raw, [
+            (fields[2], "FUZZY"), (fields[1], "SUBSTRING"), (fields[3], "EXACT"), (fields[0], "EXACT"),
+        ])
+
+        rows = self.run_finding([("I1", "SUPPLIER", "Microsoft")], [("007", *values)], fields)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0][self.candidate["method"]], "EXACT")
+        self.assertEqual(rows[0][self.candidate["source_field"]], fields[3])
+        self.assertEqual(rows[0][self.candidate["source_value"]], "Microsoft Inc.")
+
+    def test_single_selected_field_ignores_matches_in_other_csv_columns(self):
+        first, second = self.search_fields
+        columns = read_columns(self.columns_file)
+        columns["engagement"]["search_columns_eng"] = [second]
+        self.use_columns(columns)
+        rows = self.run_finding([("I1", "SUPPLIER", "AXA")], [
+            ("01", "AXA", "Unrelated"), ("02", "Other", "AXA"),
+        ], [first, second])
+        self.assertEqual([row[self.engagement["identifier"]] for row in rows], ["02"])
+        self.assertEqual(rows[0][self.candidate["source_field"]], second)
+
+    def test_vertical_engagement_csv_with_one_available_search_field(self):
+        write_table(self.folder / "CLASSIFIED_INCIDENTS.csv",
+                    [self.incident["identifier"], self.incident["classification"], self.incident["supplier"]],
+                    [("I1", "SUPPLIER", "AXA")])
+        write_table(self.folder / "ENG_ALL.csv", [self.engagement["identifier"], "01"],
+                    [(self.search_fields[1], "AXA UK")])
+        main(self.folder, self.output, columns_file=self.columns_file)
+        rows = read_rows(self.output)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0][self.candidate["source_field"]], self.search_fields[1])
+        self.assertEqual(rows[0][self.candidate["method"]], "SUBSTRING")
+
+    def test_no_configured_search_field_in_csv(self):
+        with self.assertRaisesRegex(ValueError, "at least one configured search column"):
+            self.run_finding([], [], source_fields=[self.extra_field])
+
+    def test_invalid_search_field_lists(self):
+        columns = read_columns(self.columns_file)
+        for value in ([], "single string", [" "], [4], ["name", "name"]):
+            with self.subTest(value=value):
+                columns["engagement"]["search_columns_eng"] = value
+                self.columns_file.write_text(yaml.safe_dump(columns), encoding="utf-8")
+                with self.assertRaisesRegex(ValueError, "search_columns_eng"):
+                    read_columns(self.columns_file)

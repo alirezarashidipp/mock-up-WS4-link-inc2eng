@@ -14,7 +14,7 @@ Both stages run from the project root and write to `data/output/`.
 Finding reads its input and output CSV header names from [finding_columns.yml](config/finding_columns.yml). The defaults below produce the candidate format used by Linking.
 
 1. Put `CLASSIFIED_INCIDENTS.csv` in `data/input/`. It must contain the headers `class` and `classified_supplier_name`.
-2. In the same folder, supply `ENG_ALL.csv`. The required fields are `ENGAGEMENT_ID`, `THIRD_PARTY_NAME` and `THIRD_PARTY_NORMALISED_NAME`. Other engagement fields are carried into the output.
+2. In the same folder, supply `ENG_ALL.csv` with the engagement identifier and at least one field from `engagement.search_columns_eng`. The default list contains `THIRD_PARTY_NAME`, `THIRD_PARTY_NORMALISED_NAME` and `PRAD_NAME`. Add, remove or reorder headers in this list to choose which fields Finding searches.
 3. Use UTF-8, comma-separated CSV files. The incident file has headers in the first row. For `ENG_ALL`, field names can run across the first row (one engagement per row) or down the first column (one engagement per column).
 
 From the project root on Windows, run:
@@ -29,12 +29,12 @@ For subsequent runs, use the last command.
 
 ## Read the results
 
-Open `data/output/engagement_candidates.csv`. Finding selects rows whose `class` is exactly `SUPPLIER`. It applies the same cleaning rules to the incident name and both engagement name fields, then applies whole-name YAML aliases to the incident name only. For example, `B.T.` becomes `british telecom`. The candidate file retains the original source values.
+Open `data/output/engagement_candidates.csv`. Finding selects rows whose `class` is exactly `SUPPLIER`. It applies the same cleaning rules to the incident name and every configured engagement search field, then applies whole-name YAML aliases to the incident name only. For example, `B.T.` becomes `british telecom`. The candidate file retains the original source values.
 
-Before saving the CSV, Finding keeps one row per incident and matching engagement ID. When the same ID matches through multiple columns or source records, the strongest method wins in the order `EXACT`, `SUBSTRING`, `FUZZY`. The earliest source record wins a tie. The candidate file adds four fields to the selected source records. [Candidate deduplication](app/finding/deduplicate_candidates.py)
+The candidate CSV contains one row per matching `(incident_id, ENGAGEMENT_ID)` pair. Finding keeps the strongest match in the order `EXACT`, `SUBSTRING`, `FUZZY`. The first source record wins a tie. Each row includes four match details. [Candidate deduplication rules](app/finding/docs/README.md#candidate-deduplication)
 
 - `standardised_supplier_name` holds the incident name used in the comparison.
-- `matched_supplier_column` identifies the first supplier column that matched in priority order.
+- `matched_supplier_column` identifies the field that produced the retained match. When fields in the same row tie on method, the first in YAML order wins.
 - `match_type` records `EXACT`, `SUBSTRING` or `FUZZY`.
 - `found_name_in_source` contains the full original ENG_ALL value from the matched column.
 
