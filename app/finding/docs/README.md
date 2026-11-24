@@ -59,7 +59,7 @@ Header spelling and case must match. Blank or duplicate headers are rejected. Co
 
 ## Incident selection and shared name cleaning
 
-The selector requires `class` to equal `SUPPLIER` exactly. An incident with an empty or whitespace-only name, or one whose name becomes empty during cleaning, goes to the invalid-name report. [Selector](../select_incidents.py)
+The selector requires `class` to equal `SUPPLIER` exactly. It skips rows where `classified_supplier_name` is blank, contains only whitespace or equals `Unknown` after trimming surrounding whitespace and ignoring case. The check uses the whole source name, so `Unknown Ventures` remains eligible. Filtered rows produce no output. A selected name such as `Solutions Ltd` that becomes empty during cleaning goes to the invalid-name report. [Selector](../select_incidents.py)
 
 The incident name and each configured engagement search field use the following rules.
 

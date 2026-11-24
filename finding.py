@@ -64,7 +64,7 @@ def main(input_dir=INPUT, output_file=OUTPUT, columns_file=COLUMNS):
     replacements = read_replacements(ALIASES)
 
     incident_headers, incidents = read_incidents(input_dir, incident_fields)
-    incidents = select_incidents(incidents, incident_fields["classification"])
+    incidents = select_incidents(incidents, incident_fields["classification"], incident_fields["supplier"])
     incidents = clean_incidents(incidents, incident_fields["supplier"])
     incidents = replace_incident_names(incidents, replacements)
 

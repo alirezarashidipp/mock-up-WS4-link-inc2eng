@@ -108,9 +108,19 @@ class FindingTests(TestCase):
         self.assertEqual(read_rows(self.invalid), [
             {self.incident["identifier"]: "I1", self.incident["supplier"]: "Holding Solutions Ltd.",
              self.status: "invalid name"},
-            {self.incident["identifier"]: "I2", self.incident["supplier"]: "  ", self.status: "invalid name"},
         ])
         self.run_finding([("I1", "SUPPLIER", "Usable")], [])
+        self.assertEqual(read_rows(self.invalid), [])
+
+    def test_selection_excludes_blank_and_unknown_supplier_names(self):
+        incidents = [
+            ("I1", "SUPPLIER", ""), ("I2", "SUPPLIER", " \t "),
+            ("I3", "SUPPLIER", "Unknown"), ("I4", "SUPPLIER", "  unKNOWN "),
+            ("I5", "SUPPLIER", " Unknown Ventures "), ("I6", "supplier", "Unknown Ventures"),
+        ]
+        rows = self.run_finding(incidents, [("E1", "Unknown Ventures", "", "")])
+        self.assertEqual([row[self.incident["identifier"]] for row in rows], ["I5"])
+        self.assertEqual(rows[0][self.incident["supplier"]], " Unknown Ventures ")
         self.assertEqual(read_rows(self.invalid), [])
 
     def test_all_headers_can_be_renamed(self):

@@ -29,7 +29,7 @@ For subsequent runs, use the last command.
 
 ## Read the results
 
-Open `data/output/engagement_candidates.csv`. Finding selects rows whose `class` is exactly `SUPPLIER`. It applies the same cleaning rules to the incident name and every configured engagement search field, then applies whole-name YAML aliases to the incident name only. For example, `B.T.` becomes `british telecom`. The candidate file retains the original source values.
+Open `data/output/engagement_candidates.csv`. Finding selects rows whose `class` is exactly `SUPPLIER` and whose supplier name contains text. It skips the whole value `Unknown` regardless of case or surrounding whitespace. It applies the same cleaning rules to the incident name and every configured engagement search field, then applies whole-name YAML aliases to the incident name only. For example, `B.T.` becomes `british telecom`. The candidate file retains the original source values.
 
 The candidate CSV contains one row per matching `(incident_id, ENGAGEMENT_ID)` pair. Finding keeps the strongest match in the order `EXACT`, `SUBSTRING`, `FUZZY`. The first source record wins a tie. Each row includes four match details. [Candidate deduplication rules](app/finding/docs/README.md#candidate-deduplication)
 
@@ -38,7 +38,7 @@ The candidate CSV contains one row per matching `(incident_id, ENGAGEMENT_ID)` p
 - `match_type` records `EXACT`, `SUBSTRING` or `FUZZY`.
 - `found_name_in_source` contains the full original ENG_ALL value from the matched column.
 
-An incident can have several candidate rows or none. Supplier incidents whose names are blank after cleaning appear in `data/output/engagement_candidates_invalid_names.csv` with the status `invalid name`. Each run replaces both Finding outputs. [Finding rules and examples](app/finding/docs/README.md)
+An incident can have several candidate rows or none. Selected incidents whose names become empty during cleaning appear in `data/output/engagement_candidates_invalid_names.csv` with the status `invalid name`. Each run replaces both Finding outputs. [Finding rules and examples](app/finding/docs/README.md)
 
 ## Link incidents to engagements
 
