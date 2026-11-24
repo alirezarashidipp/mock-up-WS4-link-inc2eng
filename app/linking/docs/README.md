@@ -64,7 +64,7 @@ The abbreviated JSON example shows the user message for synthetic incident `inc2
 
 The OpenAI SDK call uses `chat.completions.parse` with `response_format=LinkingDecision`, the configured model and temperature, and `store=False`.
 
-The response contains one shared `incident_evidence_citation_strength` and an `assessments` list. Each assessment has its candidate number, citations, engagement evidence strength, decision, rationale and confidence with its explanation. The writer maps these values to eight CSV columns. [Response schema](../schema.py)
+The response contains one shared `incident_evidence_citation_strength` and an `assessments` list. Four candidates require four assessments, even when none is `LINKED`. Each assessment has its candidate number, citations, engagement evidence strength, decision, rationale and confidence with its explanation. The writer maps these values to eight CSV columns. [Response schema](../schema.py)
 
 ## Decision rules
 
@@ -90,12 +90,12 @@ The two source-strength ratings describe how useful each source is for this link
 
 | Strength | Incident evidence | Engagement evidence |
 | --- | --- | --- |
-| `UNSUPPORTED` | No usable clues about the affected service | No usable service scope |
-| `WEAK` | Only a broad symptom, such as connectivity issues | Only a broad category, such as IT support |
-| `MODERATE` | The service is identifiable, but a gap or conflict changes the possible scope, such as a WAN outage at an unidentified branch | The service is identifiable, but coverage is unclear, such as WAN support for unspecified branches |
-| `STRONG` | The affected scope is clear, such as a WAN outage at the London branch | Coverage is clear, such as WAN support for all UK branches |
+| `UNSUPPORTED` | No usable clue about the supplier service, component or activity implicated in the failure | No usable service scope |
+| `WEAK` | Only a broad symptom or downstream impact, such as 20 minutes of failed card payments | Only a broad category, such as IT support |
+| `MODERATE` | A specific supplier service is implicated, but a material detail is missing or disputed, such as which branch's WAN circuit failed | The service is identifiable, but coverage is unclear, such as WAN support for unspecified branches |
+| `STRONG` | The incident establishes the implicated service and its material scope, such as a failure traced to the supplier's WAN circuit at the London branch | Coverage is clear, such as WAN support for all UK branches |
 
-Missing details lower the rating only when they could change the service or scope described by that source. Incident strength is assessed once for the incident. Engagement strength is assessed separately for each candidate. A precise description of an unrelated service can earn `STRONG` and accompany `NOT_LINKED`.
+Missing details lower the rating only when they could change the service or scope described by that source. Incident strength is assessed once using the incident record alone. Engagement strength is assessed separately for each candidate. A precise description of an unrelated service can earn `STRONG` and accompany `NOT_LINKED`.
 
 Decision confidence expresses how appropriate the chosen label is for the available evidence. `LOW` means substantial doubt remains, `MEDIUM` means meaningful doubt remains, and `HIGH` means little remaining doubt. Clearly established uncertainty can justify `POSSIBLY_LINKED` with `HIGH` confidence. These values are qualitative judgments. Measured accuracy requires comparison with reviewed reference decisions.
 

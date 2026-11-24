@@ -26,7 +26,14 @@ class EngagementAssessment(BaseModel):
         )
     )
     link_decision: LinkDecision = Field(
-        description="Decision for this incident-engagement pair."
+        description=(
+            "Assess this candidate independently. "
+            "Use LINKED when evidence from both records connects its documented scope "
+            "to the supplier service implicated in the failure. "
+            "Use NOT_LINKED when the evidence rules this candidate out. "
+            "Use POSSIBLY_LINKED for a concrete service fit with a specific material gap or conflict. "
+            "Use INSUFFICIENT_EVIDENCE when the records establish neither a concrete fit nor an exclusion."
+        )
     )
     link_rationale: str = Field(
         min_length=1,
@@ -46,13 +53,18 @@ class LinkingDecision(BaseModel):
 
     incident_evidence_citation_strength: Literal["UNSUPPORTED", "WEAK", "MODERATE", "STRONG"] = Field(
         description=(
-            "Rate the affected service using the incident alone. UNSUPPORTED means no usable service clue. "
-            "WEAK gives only a broad symptom or category, e.g. connectivity issues. MODERATE identifies the "
-            "service but a gap or conflict changes which scope was affected, e.g. one branch lost WAN access "
-            "and its location is unknown. STRONG establishes the affected service and scope without material conflict, e.g. the London "
-            "branch lost WAN access. Missing irrelevant details do not lower the rating."
+            "Using the incident record alone, rate how clearly it identifies the supplier service, "
+            "component or activity implicated in the failure. "
+            "Use UNSUPPORTED when there is no usable service clue. "
+            "Use WEAK for a broad symptom or downstream impact. "
+            "Use MODERATE when a specific supplier service is implicated but a material detail "
+            "is missing or disputed. "
+            "Use STRONG when the record clearly establishes the implicated service and its material scope."
         )
     )
     assessments: list[EngagementAssessment] = Field(
-        description="One independent assessment for every supplied candidate_number."
+        description=(
+            "Return exactly one assessment for every supplied candidate_number, including excluded "
+            "and uncertain candidates. A complete response may contain zero LINKED assessments."
+        )
     )
