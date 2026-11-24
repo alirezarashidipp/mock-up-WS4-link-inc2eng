@@ -1,10 +1,5 @@
 {
   "field_definitions": {
-    "incident": {
-      "incident_id": "Unique identifier of the incident, preserved locally to associate its original source data with its classification result.",
-      "incident_description": "A detailed incident narrative describing symptoms, timing, impact, and investigation context.",
-      "incident_impacted_business_service_name": "The business service recorded as affected by the incident."
-    },
     "engagement": {
       "ENGAGEMENT_ID": "Identifier assigned to the engagement.",
       "ENGAGEMENT_NAME": "Name of the engagement.",
@@ -13,11 +8,23 @@
       "SERVICE_CATEGORY_L1_NAME": "Name of the level-one service category."
     }
   },
-  "incident": {
-    "incident_id": "inc2",
-    "incident_description": "Shops received timeouts from the card authorisation gateway between 09:10 and 09:25. Payments resumed after the gateway restarted.",
-    "incident_impacted_business_service_name": "Retail card payments"
-  },
+  "incident": [
+    {
+      "column_name": "incident_id",
+      "definition": "Unique identifier of the incident, preserved locally to associate its original source data with its classification result.",
+      "value": "inc2"
+    },
+    {
+      "column_name": "incident_description",
+      "definition": "A detailed incident narrative describing symptoms, timing, impact, and investigation context.",
+      "value": "Shops received timeouts from the card authorisation gateway between 09:10 and 09:25. Payments resumed after the gateway restarted."
+    },
+    {
+      "column_name": "incident_impacted_business_service_name",
+      "definition": "The business service recorded as affected by the incident.",
+      "value": "Retail card payments"
+    }
+  ],
   "engagements": {
     "columns": ["candidate_number", "ENGAGEMENT_ID", "ENGAGEMENT_NAME", "ENGAGEMENT_DESCRIPTION_TEXT", "THIRD_PARTY_NAME", "SERVICE_CATEGORY_L1_NAME"],
     "rows": [

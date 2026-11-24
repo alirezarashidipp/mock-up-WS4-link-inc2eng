@@ -58,7 +58,9 @@ Requests run sequentially. All candidates for an incident travel together. Ident
 
 ## What the model receives and returns
 
-The request contains `field_definitions`, one `incident` object with 76 selected fields, and an `engagements` table. Its `columns` list starts with `candidate_number`, followed by the 22 selected engagement field names. Each array in `rows` represents one candidate and follows that same column order. Missing or whitespace-only values become JSON `null` and keep their position. Other values retain their source content, including `incident_id` and `ENGAGEMENT_ID`.
+The `incident` list has one entry for each of the 76 selected fields. Each entry gives the `column_name`, its English `definition` and the source `value`. An incident citation uses the column name and an excerpt from that value.
+
+The engagement definitions appear once in `field_definitions.engagement`. The `engagements.columns` list starts with `candidate_number`, followed by the 22 selected engagement field names. Each array in `engagements.rows` holds one candidate's values in that order. Across both records, missing or whitespace-only values become JSON `null`. Other values retain their source content, including `incident_id` and `ENGAGEMENT_ID`.
 
 The abbreviated JSON example shows the user message for synthetic incident `inc2`. It includes three incident fields and four engagement rows, each with a local `candidate_number` and five source values. [Example request (JSON)](llm-request-example.json)
 

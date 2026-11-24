@@ -12,6 +12,17 @@ def source_value(record, field):
     return value
 
 
+def build_incident_fields(incident, definitions):
+    fields = []
+    for name in INCIDENT_FIELDS:
+        fields.append({
+            "column_name": name,
+            "definition": definitions[name],
+            "value": source_value(incident, name),
+        })
+    return fields
+
+
 def build_engagement_table(engagements):
     columns = ["candidate_number", *ENGAGEMENT_FIELDS]
     rows = []
@@ -22,10 +33,9 @@ def build_engagement_table(engagements):
 
 
 def request_decision(client, model, incident, engagements, definitions, prompt, temperature):
-    incident_values = {field: source_value(incident, field) for field in INCIDENT_FIELDS}
     payload = {
-        "field_definitions": definitions,
-        "incident": incident_values,
+        "field_definitions": {"engagement": definitions["engagement"]},
+        "incident": build_incident_fields(incident, definitions["incident"]),
         "engagements": build_engagement_table(engagements),
     }
     response = client.chat.completions.parse(

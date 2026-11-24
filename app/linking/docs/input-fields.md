@@ -8,11 +8,11 @@ One request contains three JSON properties.
 
 | Property | Content |
 | --- | --- |
-| `field_definitions` | English definitions for the 76 selected incident fields and 22 selected engagement fields. |
-| `incident` | One incident object with all 76 keys listed below. |
+| `field_definitions` | Its `engagement` object contains the English definitions for the 22 selected engagement columns. |
+| `incident` | A list of the 76 selected incident fields. Each entry contains its source `column_name`, English `definition` and source `value`. |
 | `engagements` | A table with one shared `columns` list and one array in `rows` per distinct candidate. |
 
-The field lists in `INCIDENT_FIELDS` and `ENGAGEMENT_FIELDS` determine selection and order. The two YAML files supply the definitions for those fields. Every engagement row follows the order in `engagements.columns`. A missing value occupies its position as `null`. [Selected fields](../fields.py) · [Request builder](../decision.py)
+The field lists in `INCIDENT_FIELDS` and `ENGAGEMENT_FIELDS` determine selection and order. The two YAML files supply the definitions for those fields. An incident field with a missing value still carries its name and definition, with `value` set to `null`. Every engagement row follows the order in `engagements.columns`, including `null` cells. [Selected fields](../fields.py) · [Request builder](../decision.py)
 
 This example shows the first three columns of the `engagements` table for one incident.
 

@@ -10,7 +10,7 @@ from unittest.mock import Mock, patch
 from pydantic import ValidationError
 
 import linking
-from app.linking.fields import ENGAGEMENT_FIELDS
+from app.linking.fields import ENGAGEMENT_FIELDS, INCIDENT_FIELDS
 from app.linking.schema import EngagementAssessment
 
 
@@ -108,7 +108,14 @@ class LinkingTests(TestCase):
         calls = self.client.chat.completions.parse.call_args_list
         self.assertEqual(len(calls), 2)
         payload = json.loads(calls[0].kwargs["messages"][1]["content"])
-        self.assertEqual(payload["incident"]["incident_id"], "001")
+        definitions = linking.read_definitions()
+        source_incident = {"incident_id": "001", "incident_description": incident}
+        expected_fields = [
+            {"column_name": name, "definition": definitions["incident"][name], "value": source_incident.get(name)}
+            for name in INCIDENT_FIELDS
+        ]
+        self.assertEqual(payload["incident"], expected_fields)
+        self.assertEqual(payload["field_definitions"], {"engagement": definitions["engagement"]})
         empty_fields = [None] * (len(ENGAGEMENT_FIELDS) - 2)
         self.assertEqual(payload["engagements"], {
             "columns": ["candidate_number", *ENGAGEMENT_FIELDS],
@@ -137,7 +144,8 @@ class LinkingTests(TestCase):
         linking.main(self.input, self.output)
         call = self.client.chat.completions.parse.call_args
         payload = json.loads(call.kwargs["messages"][1]["content"])
-        self.assertEqual(payload["incident"]["incident_id"], "002")
+        values = {field["column_name"]: field["value"] for field in payload["incident"]}
+        self.assertEqual(values["incident_id"], "002")
         self.assertEqual(self.client.chat.completions.parse.call_count, 3)
 
     def test_model_schema_accepts_the_current_fields_only(self):
@@ -162,7 +170,8 @@ class LinkingTests(TestCase):
         request = self.client.chat.completions.parse
         request.assert_called_once()
         payload = json.loads(request.call_args.kwargs["messages"][1]["content"])
-        self.assertEqual(payload["incident"]["incident_id"], "002")
+        values = {field["column_name"]: field["value"] for field in payload["incident"]}
+        self.assertEqual(values["incident_id"], "002")
         headers, first, second = read_csv(self.output)
         self.assertEqual(headers, SOURCE_HEADERS + EXPECTED_COLUMNS)
         self.assertEqual(first, done + previous)
