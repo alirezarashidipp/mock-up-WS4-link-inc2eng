@@ -1,0 +1,162 @@
+.evidence-scene {
+  --ev-route: var(--red);
+  --ev-open: var(--amber);
+  --ev-highlight: color-mix(in srgb, var(--red) 10%, white);
+  color: var(--ink);
+}
+.evidence-scene .ev-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.evidence-scene .ev-switch {
+  display: inline-flex;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  background: var(--pale);
+}
+.evidence-scene .ev-switch button {
+  appearance: none;
+  min-height: 32px;
+  padding: 5px 12px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.evidence-scene .ev-switch button b {
+  margin-right: 5px;
+  font: 600 12px var(--mono);
+}
+.evidence-scene .ev-switch button:hover { color: var(--ink); }
+.evidence-scene .ev-switch button[aria-pressed="true"] { background: var(--ink); color: white; }
+.evidence-scene .ev-switch button:focus-visible { outline: 2px solid var(--red); outline-offset: 2px; }
+.evidence-scene .ev-outcome {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 9px;
+  background: color-mix(in srgb, var(--green) 9%, white);
+  color: var(--green);
+  font: 650 12px/1.3 var(--mono);
+}
+.evidence-scene .ev-outcome::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  transform: rotate(45deg);
+  background: currentColor;
+}
+.evidence-scene .ev-outcome.ev-uncertain {
+  color: var(--amber);
+  background: color-mix(in srgb, var(--amber) 10%, white);
+}
+.evidence-scene .ev-outcome.ev-uncertain::before {
+  background: transparent;
+  border: 1px solid currentColor;
+}
+.evidence-scene .ev-sources {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 16px 0 13px;
+  gap: 28px;
+}
+.evidence-scene .ev-record {
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+.evidence-scene .ev-label {
+  color: var(--muted);
+  font: 600 11px/1.5 var(--mono);
+  letter-spacing: .065em;
+  text-transform: uppercase;
+}
+.evidence-scene .ev-record p {
+  max-width: 55ch;
+  margin: 7px 0 0;
+  font-size: clamp(15px, 1.25vw, 19px);
+  line-height: 1.4;
+}
+.evidence-scene .ev-record mark {
+  background: var(--ev-highlight);
+  color: var(--ink);
+  font-weight: 600;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+.evidence-scene .ev-map {
+  width: 100%;
+  table-layout: fixed;
+  border-spacing: 0;
+  border-collapse: collapse;
+}
+.evidence-scene .ev-path-column { width: 34%; }
+.evidence-scene .ev-map td, .evidence-scene .ev-map th {
+  padding: 7px 0;
+  background: transparent;
+  border: 0;
+  vertical-align: middle;
+}
+.evidence-scene .ev-term { font-size: 15px; font-weight: 600; line-height: 1.3; }
+.evidence-scene .ev-term:first-child { text-align: right; }
+.evidence-scene .ev-term:last-child { text-align: left; }
+.evidence-scene .ev-path {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  margin: 0 15px;
+  color: var(--muted);
+  font: 500 11px/1 var(--mono);
+  text-align: center;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.evidence-scene .ev-path > span { min-width: 7ch; }
+.evidence-scene .ev-path i {
+  position: relative;
+  flex: 1;
+  height: 0;
+  border-top: 2px solid var(--ev-route);
+  transform-origin: left center;
+}
+.evidence-scene .ev-path i::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: -4px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ev-route);
+}
+.evidence-scene .ev-path i:last-child::before { right: 0; left: auto; }
+.evidence-scene .ev-lane-open .ev-term:last-child { color: var(--ev-open); }
+.evidence-scene .ev-lane-open .ev-path i:last-child { border-top: 2px dashed var(--ev-open); }
+.evidence-scene .ev-lane-open .ev-path i:last-child::before {
+  top: -5px;
+  width: 8px;
+  height: 8px;
+  background: white;
+  border: 1px solid var(--ev-open);
+}
+.evidence-scene .ev-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .evidence-scene .ev-path i { animation: evidence-draw 420ms cubic-bezier(.22,.65,.25,1) both; }
+  .evidence-scene .ev-path i:last-child { animation-delay: 100ms; }
+  .evidence-scene .ev-lane + .ev-lane .ev-path i { animation-delay: 70ms; }
+  .evidence-scene .ev-lane + .ev-lane .ev-path i:last-child { animation-delay: 170ms; }
+}
+@keyframes evidence-draw { from { transform: scaleX(0); } to { transform: scaleX(1); } }

@@ -3,151 +3,95 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Cisco | WS4 incident to engagement</title>
-  <style>
-    /* Hallmark · HSBC-inspired editorial table · red, charcoal and white */
-    :root {
-      color-scheme: light;
-      --paper: #fff;
-      --ink: #202427;
-      --muted: #515b61;
-      --line: #cdd1d3;
-      --wash: #f4f5f5;
-      --accent: #db0011;
-      --mark: #fce2e3;
-      --mark-text: #920019;
-      --yes: #125a43;
-      --yes-bg: #e6f3ec;
-      --maybe: #704600;
-      --maybe-bg: #fff1d2;
-      --font: "Inter", "Segoe UI", Arial, sans-serif;
-      --mono: "IBM Plex Mono", Consolas, monospace;
-    }
-    * { box-sizing: border-box; }
-    body { margin: 0; color: var(--ink); background: var(--paper); font: 16px/1.4 var(--font); }
-    .wrap { width: min(1440px, 92%); margin-inline: auto; }
-    .mast { border-bottom: 1px solid var(--line); }
-    .mast .wrap, .brand, .stage-title { display: flex; align-items: center; }
-    .mast .wrap { min-height: 54px; justify-content: space-between; }
-    .brand { gap: 15px; }
-    .brand strong { border-left: 6px solid var(--accent); padding-left: 10px; letter-spacing: .04em; }
-    .case-label, .label, thead .column-head th, .small-table thead th {
-      font-size: 12px; font-weight: 650; letter-spacing: .055em; text-transform: uppercase;
-    }
-    .case-label, .label { color: var(--muted); }
-    .incident { display: grid; grid-template-columns: 29% 1fr; align-items: center; padding: 23px 0 25px; }
-    h1, h2, p { margin: 0; }
-    h1 { font-size: clamp(54px, 5.4vw, 78px); line-height: 1.02; font-weight: 650; letter-spacing: -.065em; }
-    .incident-fact { border-left: 3px solid var(--accent); padding-left: 20px; }
-    .incident-fact p { margin-top: 4px; font-size: clamp(20px, 1.85vw, 28px); line-height: 1.2; font-weight: 550; letter-spacing: -.025em; }
-    table { width: 100%; border-collapse: collapse; text-align: left; }
-    th, td { vertical-align: middle; }
-    .case-table { table-layout: fixed; border-bottom: 1px solid var(--line); }
-    .id-col { width: 7%; }
-    .supplier-col { width: 21%; }
-    .method-col { width: 15%; }
-    .scope-col { width: 36%; }
-    .decision-col { width: 21%; }
-    .stage { background: var(--ink); color: var(--paper); padding: 13px 15px 12px; }
-    .stage + .stage { border-left: 1px solid var(--paper); }
-    .stage-title { gap: 10px; font-size: 24px; line-height: 1.15; font-weight: 600; letter-spacing: -.035em; }
-    .goal { margin-left: auto; color: var(--paper); font-size: 13px; font-weight: 400; letter-spacing: 0; }
-    .filename { display: block; margin-top: 5px; font: 12px/1.3 var(--mono); color: var(--line); }
-    .column-head, .small-table thead { background: var(--wash); color: var(--muted); }
-    .case-table .column-head th { padding: 8px 15px; }
-    .case-table tbody :is(th, td) { padding: 12px 15px; border-top: 1px solid var(--line); }
-    .case-table tr > :nth-child(4) { border-left: 1px solid var(--line); }
-    .id { font: 14px var(--mono); color: var(--muted); }
-    .supplier { font-weight: 600; }
-    mark { background: var(--mark); color: var(--mark-text); border-radius: 2px; }
-    .method { font: 13px var(--mono); }
-    .decision { display: inline-block; white-space: nowrap; padding: 4px 8px; font: 600 13px/1.25 var(--mono); }
-    .confirmed { color: var(--yes); background: var(--yes-bg); }
-    .possible { color: var(--maybe); background: var(--maybe-bg); }
-    .excluded { color: var(--muted); background: var(--wash); }
-    .reference { margin: 25px 0 28px; }
-    h2 { font-size: 23px; font-weight: 600; letter-spacing: -.035em; }
-    .note { color: var(--muted); font-size: 13px; margin: 3px 0 10px; }
-    .small-table { font-size: 14px; }
-    .small-table :is(th, td) { padding: 7px 9px; border-bottom: 1px solid var(--line); }
-    .rules tbody th { font: 12px var(--mono); }
-    .rules tbody td:nth-child(2) { white-space: nowrap; }
-    .rules .example { font-weight: 550; }
-    @media (max-width: 1100px) {
-      .wrap { width: 95%; }
-      .case-table tbody :is(th,td), .case-table .column-head th, .stage { padding-inline: 10px; }
-    }
-    @media screen and (min-width: 960px) and (max-height: 800px) {
-      .mast .wrap { min-height: 42px; }
-      .incident { padding-block: 15px; }
-      .case-table tbody :is(th,td) { padding-block: 9px; }
-      .reference { margin-block: 17px 12px; }
-      .small-table :is(th,td) { padding-block: 5px; }
-    }
-    @media print {
-      @page { size: A4 landscape; margin: 9mm; }
-      body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
-      .wrap { width: 100%; }
-      .mast .wrap { min-height: 32px; }
-      .incident { padding-block: 12px; }
-      h1 { font-size: 44px; }
-      .case-table tbody :is(th,td) { padding-block: 8px; }
-      .reference { margin-block: 13px 0; }
-      .small-table :is(th,td) { padding-block: 4px; }
-      tr { break-inside: avoid; }
-    }
-  </style>
+  <meta name="theme-color" content="#171c21">
+  <title>Hybrid Entity Resolution &amp; Evidence-Based Semantic Linking Pipeline</title>
+  <link rel="stylesheet" href="journey.css">
+  <link rel="stylesheet" href="evidence.css">
+  <script src="register.js" defer></script>
+  <script src="evidence.js" defer></script>
+  <script src="journey.js" defer></script>
 </head>
 <body>
   <header class="mast">
-    <div class="wrap">
-      <div class="brand"><strong>WS4</strong><span>Incident to engagement</span></div>
-      <span class="case-label">Synthetic example</span>
+    <div class="mast-inner">
+      <div class="brand"><span class="brand-sign" aria-hidden="true"></span><b>WS4</b><span class="mast-divider"></span><span>Hybrid Entity Resolution &amp; Evidence-Based Semantic Linking Pipeline</span></div>
+      <div class="mast-tools"><span class="sample">Synthetic case</span><button id="rules-open" class="quiet" type="button"><span aria-hidden="true">≡</span> Finding rules</button></div>
     </div>
   </header>
-  <main class="wrap">
-    <section class="incident" aria-labelledby="supplier">
-      <div><span class="label">Supplier name</span><h1 id="supplier">Cisco</h1></div>
-      <div class="incident-fact"><span class="label">Incident finding</span><p>A Cisco WAN router failed at the Leeds branch.</p></div>
+  <main class="page">
+    <section class="hero" aria-labelledby="incident-title">
+      <div class="incident-copy">
+        <div class="hero-kicker"><i aria-hidden="true"></i> Incident record</div>
+        <h1 id="incident-title"><span id="subject">Cisco</span> confirmed <span id="cause">its firmware defect</span> took the <span id="place">Leeds</span> branch <span id="device">router</span> offline.</h1>
+      </div>
+      <div class="hero-art" aria-hidden="true"><img src="router.svg" alt=""></div>
     </section>
-
-    <table class="case-table" aria-label="Finding and Linking outputs for the Cisco incident">
-      <colgroup><col class="id-col"><col class="supplier-col"><col class="method-col"></colgroup>
-      <colgroup><col class="scope-col"><col class="decision-col"></colgroup>
-      <thead>
-        <tr>
-          <th class="stage" scope="colgroup" colspan="3">
-            <span class="stage-title">Finding <span class="goal">Aim: high recall</span></span>
-            <span class="filename">engagement_candidates.csv</span>
-          </th>
-          <th class="stage" scope="colgroup" colspan="2">
-            <span class="stage-title">Linking <span class="goal">Aim: high precision</span></span>
-            <span class="filename">engagement_links.csv</span>
-          </th>
-        </tr>
-        <tr class="column-head"><th scope="col">ID</th><th scope="col">Supplier in source</th><th scope="col">Match type</th><th scope="col">Engagement scope</th><th scope="col">LLM decision (demo)</th></tr>
-      </thead>
-      <tbody>
-        <tr><th class="id" scope="row">E01</th><td class="supplier">Cisco</td><td class="method">EXACT</td><td>WAN router support for the Leeds branch.</td><td><span class="decision confirmed">LINKED</span></td></tr>
-        <tr><th class="id" scope="row">E02</th><td class="supplier">Cisco</td><td class="method">EXACT</td><td>Video conferencing licences only.</td><td><span class="decision excluded">NOT_LINKED</span></td></tr>
-        <tr><th class="id" scope="row">E03</th><td class="supplier">Estrada Soto Fran<mark>cisco</mark></td><td class="method">SUBSTRING</td><td>Cisco provides WAN router support as a subcontractor. Covered branches unspecified.</td><td><span class="decision possible">POSSIBLY_LINKED</span></td></tr>
-        <tr><th class="id" scope="row">E04</th><td class="supplier"><mark>m</mark>isco</td><td class="method">FUZZY</td><td>Desktop hardware supply only.</td><td><span class="decision excluded">NOT_LINKED</span></td></tr>
-      </tbody>
-    </table>
-
-    <section class="reference" aria-labelledby="rules-title">
-        <h2 id="rules-title">Finding rules</h2>
-        <p class="note">Length after cleaning and aliases, excluding spaces. Strongest match per pair.</p>
-        <table class="small-table rules" aria-labelledby="rules-title">
-          <thead><tr><th scope="col">Priority</th><th scope="col">Length</th><th scope="col">Rule</th><th scope="col">Example</th></tr></thead>
-          <tbody>
-            <tr><th scope="row">EXACT</th><td>1+</td><td>Same full name, ignoring spaces</td><td class="example">Cisco = CISCO</td></tr>
-            <tr><th scope="row">SUBSTRING</th><td>1–4</td><td>Whole word only</td><td class="example">IBM → IBM Cloud ✓<br>IBM → ibmotor ✗</td></tr>
-            <tr><th scope="row">SUBSTRING</th><td>5+</td><td>Anywhere, ignoring spaces</td><td class="example">Cisco → Fran<mark>cisco</mark></td></tr>
-            <tr><th scope="row">FUZZY</th><td>5+</td><td>Levenshtein ≥ 72% on one or more adjacent words</td><td class="example">Cisco → misco (80%)</td></tr>
-          </tbody>
+    <nav aria-label="Case journey" class="route">
+      <button type="button" data-step="0" aria-current="step"><span class="stop-index">01</span><span>Classification</span></button>
+      <button type="button" data-step="1"><span class="stop-index">02</span><span>Finding</span></button>
+      <button type="button" data-step="2"><span class="stop-index">03</span><span>Linking</span></button>
+      <button type="button" data-step="3"><span class="stop-index">04</span><span>Evidence</span></button>
+    </nav>
+    <div class="surface">
+      <section id="classification" class="scene" aria-labelledby="class-title">
+        <div class="scene-head">
+          <div><p class="eyebrow">Model 1</p><h2 id="class-title">Who caused the failure?</h2></div>
+        </div>
+        <div class="class-grid" id="class-flow" data-phase="0" aria-label="Classification and supplier name extraction">
+          <div class="cause-box"><span class="small-label">Cause in record</span><strong>“its firmware defect”</strong></div>
+          <svg class="fork" viewBox="0 0 100 140" preserveAspectRatio="none" aria-hidden="true"><path class="wire branch-bank" d="M0 70H21Q35 70 35 55V41Q35 28 50 28H100"/><path class="wire branch-supplier" d="M0 70H21Q35 70 35 85V99Q35 112 50 112H100"/></svg>
+          <div class="branches"><div class="class-node bank"><span class="node-dot"></span>HSBC</div><div class="class-node supplier"><span class="node-dot"></span>SUPPLIER</div></div>
+          <div class="extract-line" aria-hidden="true"></div>
+          <div class="name-box"><span class="small-label">Supplier name</span><strong id="supplier-value" aria-live="polite">—</strong></div>
+        </div>
+      </section>
+      <section id="finding" class="scene" aria-labelledby="finding-title" hidden>
+        <div class="scene-head">
+          <div><p class="eyebrow">Finding · High recall</p><h2 id="finding-title">Find every lead.</h2></div>
+          <span class="output-name">engagement_candidates.csv</span>
+        </div>
+        <div class="register-card">
+          <div class="register-metadata"><span class="small-label">Engagement register</span><strong>20,000<span>+</span></strong><span class="register-unit">engagement IDs</span></div>
+          <div class="register-graphic" id="register-graphic" aria-hidden="true"></div>
+          <div class="register-query"><span class="small-label">Supplier query</span><strong>Cisco</strong></div>
+        </div>
+        <table class="records finding-records">
+          <caption class="sr-only">Finding candidates for Cisco</caption>
+          <thead><tr><th scope="col">Engagement ID</th><th scope="col">Supplier in source</th><th scope="col">Match type</th><th scope="col">Name clue</th></tr></thead>
+          <tbody id="finding-rows"></tbody>
         </table>
-    </section>
+      </section>
+      <section id="linking" class="scene" aria-labelledby="linking-title" hidden>
+        <div class="scene-head"><div><p class="eyebrow">LLM linking · High precision</p><h2 id="linking-title">Which engagements cover the failure?</h2></div><span class="output-name">engagement_links.csv</span></div>
+        <p class="prompt" id="linking-prompt">Mark any leads before revealing the evidence.</p>
+        <table class="records link-records">
+          <caption class="sr-only">Independent candidate assessments</caption>
+          <thead><tr><th scope="col">ID</th><th scope="col">Supplier in source</th><th scope="col">Engagement scope</th><th scope="col">Decision</th></tr></thead>
+          <tbody id="linking-rows"></tbody>
+        </table>
+      </section>
+      <section id="evidence" class="scene" aria-labelledby="evidence-title" hidden>
+        <div class="scene-head"><div><p class="eyebrow">Source comparison</p><h2 id="evidence-title">Trace the evidence.</h2></div></div>
+        <div id="evidence-view"></div>
+      </section>
+      <footer class="controls">
+        <div class="control-left"><button type="button" id="previous" class="back" disabled><span aria-hidden="true">←</span> Back</button><span class="page-count" id="page-count">01 / 04</span></div>
+        <button type="button" id="next" class="primary"><span id="next-text">Classify incident</span><span id="next-arrow" aria-hidden="true">→</span></button>
+      </footer>
+    </div>
+    <p class="sr-only" aria-live="polite" id="announcement"></p>
+    <noscript>Enable JavaScript to play this interactive case.</noscript>
   </main>
+  <dialog id="rules-dialog" aria-labelledby="rules-title">
+    <div class="dialog-head"><div><p class="eyebrow">Name matching</p><h2 id="rules-title">Finding rules</h2></div><button class="close" id="rules-close" type="button" aria-label="Close finding rules">×</button></div>
+    <p class="note">Use the cleaned, alias-adjusted name length, excluding spaces.</p>
+    <table class="records rule-table"><thead><tr><th scope="col">Match</th><th scope="col">Length</th><th scope="col">Rule</th><th scope="col">Example</th></tr></thead><tbody>
+      <tr><th scope="row">EXACT</th><td>1+</td><td>Same full name, ignoring spaces</td><td>Cisco = CISCO</td></tr>
+      <tr><th scope="row">SUBSTRING</th><td>1–4</td><td>Whole word only</td><td>IBM → IBM Cloud ✓<br>IBM → ibmotor ✗</td></tr>
+      <tr><th scope="row">SUBSTRING</th><td>5+</td><td>Anywhere, ignoring spaces</td><td>Cisco → Fran<mark>cisco</mark></td></tr>
+      <tr><th scope="row">FUZZY</th><td>5+</td><td>Levenshtein ≥ 72% on one or more adjacent words</td><td>Cisco → misco (80%)</td></tr>
+    </tbody></table>
+    <p class="note footnote">Each incident–engagement pair keeps its strongest match: EXACT → SUBSTRING → FUZZY.</p>
+  </dialog>
 </body>
 </html>
