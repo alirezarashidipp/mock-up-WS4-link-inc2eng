@@ -1,3 +1,4 @@
+from collections import Counter
 from pathlib import Path
 
 import yaml
@@ -9,7 +10,7 @@ from app.finding.match_rows import find_matches
 from app.finding.read_incidents import read_incidents
 from app.finding.read_suppliers import read_suppliers
 from app.finding.replace_names import read_replacements, replace_incident_names
-from app.finding.save_csv import save_candidates, save_invalid_names
+from app.finding.save_csv import save_candidates
 from app.finding.select_incidents import select_incidents
 
 
@@ -26,13 +27,16 @@ def read_columns(path):
     required = {
         "incident": ("identifier", "classification", "supplier"),
         "engagement": ("identifier",),
-        "candidate": ("search_name", "source_field", "method", "source_value"),
-        "invalid_name_report": ("status",),
+        "candidate": ("search_name", "source_field", "method", "source_value", "status"),
     }
     for section, roles in required.items():
         fields = columns.get(section) if isinstance(columns, dict) else None
         if not isinstance(fields, dict):
             raise ValueError(f"Missing column mapping for {section}.")
+        if section == "candidate" and "status" not in fields:
+            legacy_report = columns.get("invalid_name_report")
+            if isinstance(legacy_report, dict):
+                fields["status"] = legacy_report.get("status")
         for role in roles:
             header = fields.get(role)
             if not isinstance(header, str) or not header.strip():
@@ -47,9 +51,6 @@ def read_columns(path):
     if len(search_columns) != len(set(search_columns)):
         raise ValueError("Duplicate CSV headers in search_columns_eng.")
 
-    incident = columns["incident"]
-    if columns["invalid_name_report"]["status"] in (incident["identifier"], incident["supplier"]):
-        raise ValueError("Invalid-name report headers must be distinct.")
     return columns
 
 
@@ -71,15 +72,13 @@ def main(input_dir=INPUT, output_file=OUTPUT, columns_file=COLUMNS):
     supplier_headers, suppliers = read_suppliers(input_dir, engagement_fields)
     suppliers = clean_suppliers(suppliers, engagement_fields["search_columns_eng"])
 
-    matches = find_matches(incidents, suppliers, incident_fields["identifier"], engagement_fields["identifier"])
-    candidates = deduplicate_candidates(matches)
-    save_candidates(output_file, incident_headers, supplier_headers, candidates, columns["candidate"])
-
-    invalid_incidents = [row for row, name in incidents if not name]
-    invalid_file = output_file.with_name(f"{output_file.stem}_invalid_names.csv")
-    save_invalid_names(invalid_file, invalid_incidents, incident_fields, columns["invalid_name_report"]["status"])
-    print(f"Selected {len(incidents)} supplier incidents. Saved {len(candidates)} candidate rows to {output_file}.")
-    print(f"Invalid supplier names: {len(invalid_incidents)}. Report: {invalid_file}.")
+    matches = find_matches(incidents, suppliers, incident_fields["identifier"], engagement_fields["identifier"],
+                           supplier_headers)
+    results = deduplicate_candidates(matches)
+    save_candidates(output_file, incident_headers, supplier_headers, results, columns["candidate"])
+    counts = Counter(row[-1] for row in results)
+    print(f"Selected {len(incidents)} supplier incident rows. Saved {len(results)} Finding rows to {output_file}.")
+    print(f"MATCHED: {counts['MATCHED']}, NO_MATCH: {counts['NO_MATCH']}, INVALID_NAME: {counts['INVALID_NAME']}.")
 
 
 if __name__ == "__main__":

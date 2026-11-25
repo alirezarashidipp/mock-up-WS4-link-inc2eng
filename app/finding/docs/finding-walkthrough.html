@@ -38,7 +38,7 @@
     <li>
       <h2>Clean the incident name</h2>
       <p>Lowercase the text, delete periods, treat ampersands as <code>and</code> and replace configured separators such as hyphens and parentheses with spaces. Keep digits.</p>
-      <p>Remove whole words in the stop-word list, such as <code>the</code> and <code>solutions</code>, and legal terms such as <code>ltd</code> and <code>inc</code>. Record an empty result in the invalid-name report.</p>
+      <p>Remove whole words in the stop-word list, such as <code>the</code> and <code>solutions</code>, and legal terms such as <code>ltd</code> and <code>inc</code>. A selected incident with an empty search name is recorded as <code>INVALID_NAME</code> in the results CSV.</p>
       <p class="example"><code>The Azure-Solutions (Ltd.)</code> → <code>the azure solutions ltd</code> → <strong>azure</strong></p>
     </li>
     <li>
@@ -60,9 +60,9 @@
       <p>A lower threshold catches more typos but can also admit unrelated suppliers with similar names. A higher threshold can miss genuine spelling variants.</p>
     </li>
     <li>
-      <h2>Save the candidates</h2>
-      <p><code>engagement_candidates.csv</code> contains one row per incident and matching engagement ID. The strongest method wins, with the first source record winning a tie. The row contains the original source values and the four match details.</p>
-      <p class="example">Three distinct matching engagement IDs → three candidate rows. Linking then assesses which services were involved.</p>
+      <h2>Save all Finding results</h2>
+      <p><code>engagement_candidates.csv</code> contains one <code>MATCHED</code> row per incident and matching engagement ID. The strongest method wins, with the first source record winning a tie. A selected incident with zero candidates gets one row with empty engagement fields. Its status is <code>NO_MATCH</code> for a usable name or <code>INVALID_NAME</code> for an empty search name.</p>
+      <p class="example">If one incident matches three engagements and another matches none, the CSV has four rows. Linking assesses the three matched rows.</p>
     </li>
   </ol>
   <a href="matching.html">Explore 12 worked matching examples →</a>

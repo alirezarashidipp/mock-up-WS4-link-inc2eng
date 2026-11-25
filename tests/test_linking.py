@@ -9,6 +9,7 @@ from unittest.mock import Mock, patch
 
 from pydantic import ValidationError
 
+import finding
 import linking
 from app.linking.fields import ENGAGEMENT_FIELDS, INCIDENT_FIELDS
 from app.linking.schema import EngagementAssessment
@@ -271,6 +272,53 @@ class LinkingTests(TestCase):
         write_csv(self.input, [SOURCE_HEADERS])
         linking.main(self.input, self.output)
         self.assertEqual(read_csv(self.output), [SOURCE_HEADERS + EXPECTED_COLUMNS])
+        self.connect.assert_not_called()
+
+    def test_finding_status_rows_keep_their_positions_and_only_matches_reach_the_model(self):
+        input_dir = self.input.parent
+        write_csv(input_dir / "CLASSIFIED_INCIDENTS.csv", [
+            ["incident_id", "class", "classified_supplier_name", "ENGAGEMENT_ID"],
+            ["001", "SUPPLIER", "Unlisted", "original incident value"],
+            ["002", "SUPPLIER", "Acme", ""], ["003", "SUPPLIER", "Solutions Ltd", ""],
+        ])
+        write_csv(input_dir / "ENG_ALL.csv", [
+            ["ENGAGEMENT_ID", "THIRD_PARTY_NAME", "finding_status"], ["01", "Acme", "source value"],
+        ])
+        finding.main(input_dir, self.input)
+        headers, *source = read_csv(self.input)
+        self.assertEqual([row[headers.index("finding_status")] for row in source],
+                         ["NO_MATCH", "MATCHED", "INVALID_NAME"])
+        self.assertEqual(source[1][headers.index("ENG.finding_status")], "source value")
+        self.return_assessments([assessment(1)])
+        linking.main(self.input, self.output)
+        linking.main(self.input, self.output)
+
+        result_header, before, assessed, after = read_csv(self.output)
+        self.assertEqual(result_header, headers + EXPECTED_COLUMNS)
+        self.assertEqual(before, source[0] + [""] * len(EXPECTED_COLUMNS))
+        self.assertEqual(after, source[2] + [""] * len(EXPECTED_COLUMNS))
+        self.assertEqual(assessed[:len(headers)], source[1])
+        self.assertEqual(assessed[result_header.index("link_decision")], "NOT_LINKED")
+        request = self.client.chat.completions.parse
+        request.assert_called_once()
+        payload = json.loads(request.call_args.kwargs["messages"][1]["content"])
+        self.assertEqual([row[1] for row in payload["engagements"]["rows"]], ["01"])
+
+    def test_only_incident_status_rows_need_no_model_connection(self):
+        headers = SOURCE_HEADERS + ["retrieval outcome"]
+        source = [["001", "", "", "", "", "NO_MATCH"], ["002", "", "", "", "", "INVALID_NAME"]]
+        write_csv(self.input, [headers, *source])
+        linking.main(self.input, self.output, finding_status_column="retrieval outcome")
+        self.assertEqual(read_csv(self.output), [
+            headers + EXPECTED_COLUMNS, *[row + [""] * len(EXPECTED_COLUMNS) for row in source],
+        ])
+        self.connect.assert_not_called()
+
+    def test_matched_row_still_requires_an_engagement_id(self):
+        headers = SOURCE_HEADERS + ["finding_status"]
+        write_csv(self.input, [headers, ["001", "WAN outage", "", "", "", "MATCHED"]])
+        with self.assertRaisesRegex(ValueError, "ENGAGEMENT_ID"):
+            linking.main(self.input, self.output)
         self.connect.assert_not_called()
 
     def test_physical_blank_lines_keep_their_positions_on_resume(self):

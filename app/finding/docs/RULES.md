@@ -4,7 +4,7 @@
 
 - Read UTF-8 CSVs from `data/input/` with unique, nonempty headers in row 1 or, for engagements, column 1. [CSV layouts and row checks](README.md#input-files-and-formats)
 - In `CLASSIFIED_INCIDENTS.csv`, require `class` to equal `SUPPLIER` exactly and skip `classified_supplier_name` if blank or equal to `Unknown` after trimming and case-folding.
-- `ENG_ALL.csv` requires `ENGAGEMENT_ID` and at least one `search_columns_eng` header (default order `THIRD_PARTY_NAME`, `THIRD_PARTY_NORMALISED_NAME`, `PRAD_NAME`). [Column mapping](../../../config/finding_columns.yml)
+- `ENG_ALL.csv` requires `ENGAGEMENT_ID` and at least one header listed in `search_columns_eng`. The list controls search order. [Column mapping](../../../config/finding_columns.yml)
 - On both sides, lowercase names, delete periods, expand `&` to `and`, replace separators with spaces and drop whole stop words and legal terms, preserving digits and apostrophes. [Cleaning lists](README.md#incident-selection-and-shared-name-cleaning)
 - Apply the last matching whole-name alias once to the cleaned incident name only, then remove spaces to form and measure the query. [Aliases](../../../config/supplier_aliases.yml)
 
@@ -28,7 +28,7 @@ Search each available, nonempty cleaned `search_columns_eng` field in YAML order
 
 ## Output in `data/output/`
 
-- `engagement_candidates.csv` preserves all original incident then engagement values and appends `standardised_supplier_name` (spaces retained), `matched_supplier_column`, `match_type` and `found_name_in_source` (original value).
+- `engagement_candidates.csv` preserves original incident columns followed by engagement columns. It appends `standardised_supplier_name` (spaces retained), `matched_supplier_column`, `match_type`, `found_name_in_source` (original value) and `finding_status`.
 - Prefix conflicting engagement headers with `ENG.` and reject remaining duplicates.
-- For each selected incident with an empty query, record its ID, original name and `invalid name` in `engagement_candidates_invalid_names.csv`.
-- Valid unmatched names produce no rows, and each run rewrites both UTF-8 CSVs with a BOM and headers even when empty.
+- Write `MATCHED` for each retained candidate. A selected incident with zero candidates gets one `NO_MATCH` row if it has a usable search name, or one `INVALID_NAME` row if all its selected names cleaned or resolved to empty.
+- Incident-only rows retain the original incident columns and available search name. Engagement fields and the three match-specific fields are empty. Each run writes one UTF-8 CSV with a BOM and headers, including when no incidents qualify.

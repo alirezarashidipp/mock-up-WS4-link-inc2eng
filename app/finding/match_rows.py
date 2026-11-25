@@ -42,17 +42,30 @@ def record_key(row, id_column, row_number):
     return str(value)
 
 
-def find_matches(incidents, suppliers, incident_id_column, engagement_id_column):
-    """Yield every matching field with its incident key, engagement key, method and source row."""
+def matching_engagement_fields(query, suppliers, engagement_id_column):
+    if not query:
+        return
+    for supplier_number, (supplier, names) in enumerate(suppliers):
+        for column, method in matching_columns(query, names):
+            engagement_key = record_key(supplier, engagement_id_column, supplier_number)
+            yield engagement_key, supplier, column, method
+
+
+def find_matches(incidents, suppliers, incident_id_column, engagement_id_column, supplier_headers=None):
+    """Yield field matches. Supplying engagement headers includes the status and incident-only rows."""
     for incident_number, (incident, name) in enumerate(incidents):
         query = name.replace(" ", "")
-        if not query:
-            continue
         incident_key = record_key(incident, incident_id_column, incident_number)
-        for supplier_number, (supplier, names) in enumerate(suppliers):
-            for column, match_type in matching_columns(query, names):
-                engagement_key = record_key(supplier, engagement_id_column, supplier_number)
-                row = list(incident.values())
-                row.extend(supplier.values())
-                row.extend([name, column, match_type, supplier[column]])
-                yield incident_key, engagement_key, match_type, row
+        matched = False
+        fields = matching_engagement_fields(query, suppliers, engagement_id_column)
+        for engagement_key, supplier, column, method in fields:
+            matched = True
+            row = [*incident.values(), *supplier.values(), name, column, method, supplier[column]]
+            if supplier_headers is not None:
+                row.append("MATCHED")
+            yield incident_key, engagement_key, method, row
+        if not matched and supplier_headers is not None:
+            status = "NO_MATCH" if name else "INVALID_NAME"
+            empty_engagement = [""] * len(supplier_headers)
+            row = [*incident.values(), *empty_engagement, name, "", "", "", status]
+            yield incident_key, None, status, row

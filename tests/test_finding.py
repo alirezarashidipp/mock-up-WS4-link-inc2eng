@@ -32,15 +32,14 @@ class FindingTests(TestCase):
         columns = read_columns(COLUMNS)
         columns["engagement"]["search_columns_eng"] = ["name A", "name B"]
         self.use_columns(columns)
-        self.output = self.folder / "candidates.csv"
-        self.invalid = self.folder / "candidates_invalid_names.csv"
+        self.output = self.folder / "output" / "engagement_candidates.csv"
 
     def use_columns(self, columns):
         self.columns_file.write_text(yaml.safe_dump(columns), encoding="utf-8")
         self.incident = columns["incident"]
         self.engagement = columns["engagement"]
         self.candidate = columns["candidate"]
-        self.status = columns["invalid_name_report"]["status"]
+        self.status = columns["candidate"]["status"]
         self.search_fields = self.engagement["search_columns_eng"]
 
     def run_finding(self, incidents, engagements, source_fields=None):
@@ -135,18 +134,46 @@ class FindingTests(TestCase):
         ])
         self.assertEqual(rows[-1][self.candidate["source_value"]], "North-and-Star 24 Solution Ltd.")
 
-    def test_invalid_names_report_and_rerun(self):
+    def test_one_csv_for_matches_unmatched_and_invalid_names_in_source_order(self):
         incidents = [
-            ("I1", "SUPPLIER", "Holding Solutions Ltd."), ("I2", "SUPPLIER", "  "),
-            ("I3", "HSBC", "Solutions"), ("I4", "SUPPLIER", "Unmatched"),
+            ("001", "SUPPLIER", " B.T. "), ("002", "SUPPLIER", "North Star"),
+            ("003", "SUPPLIER", "Holding Solutions Ltd."), ("004", "SUPPLIER", "  "),
+            ("005", "HSBC", "North Star"), ("006", "SUPPLIER", "Unknown"),
         ]
-        self.assertEqual(self.run_finding(incidents, []), [])
-        self.assertEqual(read_rows(self.invalid), [
-            {self.incident["identifier"]: "I1", self.incident["supplier"]: "Holding Solutions Ltd.",
-             self.status: "invalid name"},
+        engagements = [("010", "North Star", "", "source, value"), ("011", "", "North Star UK", "")]
+        rows = self.run_finding(incidents, engagements)
+        self.assertEqual([(row["incident_id"], row["ENGAGEMENT_ID"], row[self.status]) for row in rows], [
+            ("001", "", "NO_MATCH"), ("002", "010", "MATCHED"), ("002", "011", "MATCHED"),
+            ("003", "", "INVALID_NAME"),
         ])
-        self.run_finding([("I1", "SUPPLIER", "Usable")], [])
-        self.assertEqual(read_rows(self.invalid), [])
+        self.assertEqual(rows[0]["classified_supplier_name"], " B.T. ")
+        self.assertEqual(rows[0]["standardised_supplier_name"], "british telecom")
+        self.assertEqual(rows[1][self.extra_field], "source, value")
+        self.assertEqual(rows[3]["classified_supplier_name"], "Holding Solutions Ltd.")
+        self.assertEqual(rows[3]["standardised_supplier_name"], "")
+        for row in (rows[0], rows[3]):
+            for column in [*self.search_fields, self.extra_field, "matched_supplier_column",
+                           "match_type", "found_name_in_source"]:
+                self.assertEqual(row[column], "")
+        rerun = self.run_finding([("001", "SUPPLIER", "Acme")], [])
+        self.assertEqual([row[self.status] for row in rerun], ["NO_MATCH"])
+        self.assertEqual(self.run_finding([("006", "SUPPLIER", "Unknown")], []), [])
+        self.assertEqual(list(self.output.parent.iterdir()), [self.output])
+
+    def test_one_outcome_per_incident_without_a_match_and_separate_blank_ids(self):
+        incidents = [
+            ("I1", "SUPPLIER", "Ltd"), ("I2", "SUPPLIER", "Other"),
+            ("I1", "SUPPLIER", "Acme"), ("I2", "SUPPLIER", "North Star"),
+            ("I3", "SUPPLIER", "Ltd"), ("I3", "SUPPLIER", "Ltd"),
+            ("", "SUPPLIER", "Acme"), ("", "SUPPLIER", "Other"),
+            ("I2", "SUPPLIER", "Other"),
+        ]
+        rows = self.run_finding(incidents, [("E1", "North Star", "", "")])
+        self.assertEqual([(row["incident_id"], row["classified_supplier_name"], row[self.status])
+                          for row in rows], [
+            ("I1", "Acme", "NO_MATCH"), ("I2", "North Star", "MATCHED"),
+            ("I3", "Ltd", "INVALID_NAME"), ("", "Acme", "NO_MATCH"), ("", "Other", "NO_MATCH"),
+        ])
 
     def test_selection_excludes_blank_and_unknown_supplier_names(self):
         incidents = [
@@ -157,7 +184,7 @@ class FindingTests(TestCase):
         rows = self.run_finding(incidents, [("E1", "Unknown Ventures", "", "")])
         self.assertEqual([row[self.incident["identifier"]] for row in rows], ["I5"])
         self.assertEqual(rows[0][self.incident["supplier"]], " Unknown Ventures ")
-        self.assertEqual(read_rows(self.invalid), [])
+        self.assertEqual(rows[0][self.status], "MATCHED")
 
     def test_all_headers_can_be_renamed(self):
         columns = read_columns(COLUMNS)
@@ -170,16 +197,16 @@ class FindingTests(TestCase):
         incidents = [("01", "SUPPLIER", "B.T."), ("02", "SUPPLIER", "Ltd")]
         engagements = [("003", "BT", "British Telecom", "original value")]
         rows = self.run_finding(incidents, engagements)
-        self.assertEqual(len(rows), 1)
+        self.assertEqual(len(rows), 2)
         self.assertEqual(rows[0][self.incident["identifier"]], "01")
         self.assertEqual(rows[0][self.engagement["identifier"]], "003")
         self.assertEqual(rows[0][self.candidate["method"]], "EXACT")
         self.assertEqual(rows[0][self.candidate["search_name"]], "british telecom")
         self.assertEqual(rows[0][self.candidate["source_field"]], self.search_fields[1])
         self.assertEqual(rows[0][self.candidate["source_value"]], "British Telecom")
-        self.assertEqual(read_rows(self.invalid), [
-            {self.incident["identifier"]: "02", self.incident["supplier"]: "Ltd", self.status: "invalid name"},
-        ])
+        self.assertEqual(rows[0][self.status], "MATCHED")
+        self.assertEqual(rows[1][self.incident["identifier"]], "02")
+        self.assertEqual(rows[1][self.status], "INVALID_NAME")
 
     def test_every_matching_field_reaches_deduplication_in_yaml_order(self):
         fields = ["trading name", "region name", "brand name", "legal name"]
@@ -232,6 +259,15 @@ class FindingTests(TestCase):
     def test_no_configured_search_field_in_csv(self):
         with self.assertRaisesRegex(ValueError, "at least one configured search column"):
             self.run_finding([], [], source_fields=[self.extra_field])
+
+    def test_legacy_status_mapping_is_used_in_the_single_csv(self):
+        columns = read_columns(self.columns_file)
+        del columns["candidate"]["status"]
+        columns["invalid_name_report"] = {"status": "retrieval outcome"}
+        self.columns_file.write_text(yaml.safe_dump(columns), encoding="utf-8")
+        rows = self.run_finding([("01", "SUPPLIER", "Acme")], [])
+        self.assertEqual(rows[0]["retrieval outcome"], "NO_MATCH")
+        self.assertEqual(list(self.output.parent.iterdir()), [self.output])
 
     def test_invalid_search_field_lists(self):
         columns = read_columns(self.columns_file)

@@ -36,7 +36,7 @@ def link_incidents(cases, rows, headers, output_file):
             print(f"Saved incident {incident['incident_id']} to {output_file}.", flush=True)
 
 
-def main(candidates_file=CANDIDATES, output_file=OUTPUT):
+def main(candidates_file=CANDIDATES, output_file=OUTPUT, finding_status_column="finding_status"):
     candidates_file = Path(candidates_file)
     output_file = Path(output_file)
     if output_file.suffix.lower() != ".csv" or output_file.resolve() == candidates_file.resolve():
@@ -45,7 +45,7 @@ def main(candidates_file=CANDIDATES, output_file=OUTPUT):
         raise ValueError("Choose a CSV candidate input.")
 
     headers, source_rows = read_candidates(candidates_file)
-    cases = read_cases(source_rows, headers)
+    cases = read_cases(source_rows, headers, finding_status_column)
     output_file.parent.mkdir(parents=True, exist_ok=True)
     with FileLock(str(output_file) + ".lock", timeout=0):
         rows, needs_snapshot = read_progress(output_file, headers, source_rows, OUTPUT_COLUMNS)

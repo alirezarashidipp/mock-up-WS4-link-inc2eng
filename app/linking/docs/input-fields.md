@@ -34,21 +34,22 @@ This example shows the first three columns of the `engagements` table for one in
 | Requirement | Current handling |
 | --- | --- |
 | First row contains headers | The CSV reader uses header names exactly as read. Empty or repeated names raise an error. |
-| `incident_id` header | Required. Each populated source row must have a nonblank value. |
-| `ENGAGEMENT_ID` or `ENG.ENGAGEMENT_ID` header | Required. Each populated source row must have a nonblank value in the selected engagement ID column. |
+| `incident_id` header | Required. Each candidate sent for assessment must have a nonblank value. |
+| `ENGAGEMENT_ID` or `ENG.ENGAGEMENT_ID` header | Required. A matched row must have a nonblank engagement ID. An incident-only row must have an empty engagement ID. |
+| `finding_status` | `MATCHED` rows are candidates. `NO_MATCH` and `INVALID_NAME` rows keep their original positions and receive no assessment. A missing status column supports older candidate-only files. |
 | Additional selected fields | A missing column contributes `null` to the request for that field. |
 | Linking output columns in the input | `read_cases()` reserves the eight assessment column names for the output. |
 | Row width | Every row with cells must have exactly as many cells as the header, even if they are all empty. A shorter or longer row raises an error. |
 | Empty rows | A physical blank line or a full-width row of empty cells keeps its position in the output and receives no assessment. |
 | Header-only candidate file | Produces a header-only CSV and makes zero model requests when the required headers are present. |
 
-Header names and identifiers are used as recorded. The linking reader performs no supplier-name cleaning or alias replacement. The field names below are case-sensitive. [Input reader and checks](../read_cases.py)
+Header names and identifiers are used as recorded. If Finding uses a custom status header, pass its name as `finding_status_column` to `linking.main()`. The linking reader performs no supplier-name cleaning or alias replacement. The field names below are case-sensitive. [Input reader and checks](../read_cases.py)
 
 When a supplier header collides with an incident header or a Finding detail column, Finding prefixes the supplier header with `ENG.`. For every selected engagement field, Linking first checks for `ENG.<field>` and uses that header when present. Otherwise it uses the unprefixed field. The model receives the canonical name, such as `ENGAGEMENT_NAME`, even when the candidate file column is `ENG.ENGAGEMENT_NAME`. [Finding output headers](../../finding/save_csv.py) · [Engagement column selection](../read_cases.py)
 
 ## Grouping, duplicates and source positions
 
-Rows are grouped by the recorded `incident_id`, following the order in which incidents first appear. All 76 selected incident values must agree across that incident's rows. A difference raises an error before model processing. This comparison occurs before whitespace-only values are converted to `null`, so an empty cell and a whitespace string in otherwise repeated incident data can trigger a mismatch.
+Candidate rows are grouped by the recorded `incident_id`, following the order in which matched incidents first appear. All 76 selected incident values must agree across that incident's candidate rows. A difference raises an error before model processing. This comparison occurs before whitespace-only values are converted to `null`, so an empty cell and a whitespace string in otherwise repeated incident data can trigger a mismatch.
 
 Within an incident, an engagement is identified by the complete tuple of its 22 selected values. Identical tuples share one candidate and one model assessment. Their original row positions are retained, and the assessment is written to every matching position. Records with the same `ENGAGEMENT_ID` but different selected values are separate candidates.
 

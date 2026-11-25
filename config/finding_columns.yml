@@ -15,6 +15,4 @@ candidate:
   source_field: matched_supplier_column
   method: match_type
   source_value: found_name_in_source
-
-invalid_name_report:
   status: finding_status

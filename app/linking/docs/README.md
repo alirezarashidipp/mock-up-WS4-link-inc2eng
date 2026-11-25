@@ -24,7 +24,7 @@ Install the project's dependencies using the setup commands in the root README, 
 .\.venv\Scripts\python.exe linking.py
 ```
 
-Linking reads comma-separated UTF-8 CSV files with or without a BOM. The header must include `incident_id` and either `ENGAGEMENT_ID` or `ENG.ENGAGEMENT_ID`. Each populated row must match the header width and contain both IDs. A file with valid headers and zero data rows produces a header-only output with zero model calls. [Candidate file requirements](input-fields.md#candidate-file-requirements)
+Linking reads comma-separated UTF-8 CSV files with or without a BOM. The header must include `incident_id` and either `ENGAGEMENT_ID` or `ENG.ENGAGEMENT_ID`. Each populated row must match the header width. Rows marked `MATCHED` require both IDs. Rows marked `NO_MATCH` or `INVALID_NAME` have an empty engagement ID and are copied to the output with eight empty assessment fields. A file containing only these rows or only headers requires zero model calls. Older candidate files without a Finding status column are read as before, with both IDs required on populated rows. [Candidate file requirements](input-fields.md#candidate-file-requirements)
 
 Linking loads the provider settings only when an incident needs assessment. Set `LLM_PROVIDER` to `openai` (the default) or `azure`. Supply a model or deployment and a temperature it supports. The settings template leaves the model blank and shows `LLM_TEMPERATURE=0.7`. Existing process environment values take precedence over `.env`. [Settings template](../../../.env.example) · [Connection implementation](../llm_connection.py)
 
@@ -38,7 +38,7 @@ Azure uses `EnvironmentCredential` and a bearer-token provider for Microsoft Ent
 ## Processing one incident
 
 1. `read_candidates()` reads the CSV and returns its headers and rows in source order.
-2. `read_cases()` checks those rows and groups them by `incident_id`. The 76 selected incident values must agree across all rows of that incident.
+2. `read_cases()` checks the Finding status and groups candidate rows by `incident_id`. The 76 selected incident values must agree across the candidate rows of that incident.
 3. Within each incident, group engagement rows with identical values across the 22 selected engagement fields. Keep distinct records in order of first appearance.
 4. Restore saved progress and select incidents with blank assessments.
 5. Send up to 80 distinct candidates per request. Each batch repeats the incident and field definitions and numbers its candidates from 1.
@@ -95,7 +95,7 @@ Decision confidence expresses how appropriate the chosen label is for the availa
 
 ## CSV columns
 
-The comma-separated CSV uses UTF-8 with a BOM. It preserves every source row, column and their order as text, including duplicate rows and fully blank rows. Fully blank source rows retain blank assessments. Pending candidate rows have eight empty assessment fields. [LLM output columns (HTML)](output-columns.html)
+The comma-separated CSV uses UTF-8 with a BOM. It preserves every source row, column and their order as text, including duplicate rows and fully blank rows. Fully blank source rows and Finding's `NO_MATCH` and `INVALID_NAME` rows retain blank assessments. Pending candidate rows have eight empty assessment fields until their incident is evaluated. [LLM output columns (HTML)](output-columns.html)
 
 | Added column, in order | Meaning and representation |
 | --- | --- |

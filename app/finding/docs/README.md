@@ -17,21 +17,21 @@ The entry point performs these steps in order.
 3. Clean incident supplier names and apply whole-name aliases.
 4. Read ENG_ALL and clean the available fields listed in `engagement.search_columns_eng`.
 5. Compare each selected incident with every engagement record and yield each matching field.
-6. Deduplicate the matches by incident and engagement ID, keeping the strongest row for each pair.
-7. Save the candidates, write the invalid-name report and print the counts.
+6. Keep the strongest match for each incident–engagement pair and one status row for each selected incident with zero candidates.
+7. Save all results in `engagement_candidates.csv` and print the counts.
 
 Paths are relative to the project root in `finding.py`. Python callers can supply `input_dir`, `output_file` and `columns_file` to `main()`. [Entry point](../../../finding.py)
 
 ## Input files and formats
 
-Edit the values in [finding_columns.yml](../../../config/finding_columns.yml) to match your CSV headers. The keys identify each column's role. The invalid-name report reuses the incident identifier and supplier headers. The examples below use the default mapping. Linking expects its documented headers when consuming Finding output.
+The column mapping identifies the role of each input and output header. The `candidate.status` setting names the status column, which defaults to `finding_status`. Linking uses its documented headers by default. [Column mapping](../../../config/finding_columns.yml)
 
 | Input | Location | Required headers |
 | --- | --- | --- |
 | Incidents | `data/input/CLASSIFIED_INCIDENTS.csv` | `class`, `classified_supplier_name` |
 | Engagements | `data/input/ENG_ALL.csv` | Engagement identifier and at least one header in `search_columns_eng` |
 
-The default engagement mapping uses three search fields.
+For example, a mapping can search these three engagement fields.
 
 ```yaml
 engagement:
@@ -59,7 +59,7 @@ Header spelling and case must match. Blank or duplicate headers are rejected. Co
 
 ## Incident selection and shared name cleaning
 
-The selector requires `class` to equal `SUPPLIER` exactly. It skips rows where `classified_supplier_name` is blank, contains only whitespace or equals `Unknown` after trimming surrounding whitespace and ignoring case. The check uses the whole source name, so `Unknown Ventures` remains eligible. Filtered rows produce no output. A selected name such as `Solutions Ltd` that becomes empty during cleaning goes to the invalid-name report. [Selector](../select_incidents.py)
+The selector requires `class` to equal `SUPPLIER` exactly. It skips rows where `classified_supplier_name` is blank, contains only whitespace or equals `Unknown` after trimming surrounding whitespace and ignoring case. The check uses the whole source name, so `Unknown Ventures` remains eligible. Filtered rows produce no output. A selected incident whose only name is `Solutions Ltd` receives `INVALID_NAME` because cleaning removes every word. [Selector](../select_incidents.py)
 
 The incident name and each configured engagement search field use the following rules.
 
@@ -131,7 +131,7 @@ The candidate CSV contains one row per matching `(incident_id, ENGAGEMENT_ID)` p
 | A pair has matches of different types | The strongest match and its full source row. Priority is `EXACT`, then `SUBSTRING`, then `FUZZY`. |
 | Several fields on the same source row tie on method | The first matching field in `search_columns_eng` order. |
 | Multiple source records share the strongest match type for a pair | The first such record in input order. |
-| An identifier is missing or blank | Finding uses the corresponding source row's position as its identity. Linking requires both IDs to be populated. |
+| An identifier is missing or blank | Finding uses the corresponding source row's position as its identity. Linking requires both IDs on each matched row. |
 
 Pairs appear in the order of their first match, even when a later record supplies the strongest match. For example, if incident `I01` matches `E07` by both `FUZZY` and `EXACT`, its output contains one `E07` row with `EXACT`. A match between `I02` and `E07` has its own output row. [Deduplication rules in code](../deduplicate_candidates.py)
 
@@ -141,7 +141,7 @@ The output is `data/output/engagement_candidates.csv`, a UTF-8 CSV with a BOM an
 
 1. All incident columns in input order.
 2. All engagement columns in input order.
-3. The four matching details below.
+3. Four matching details followed by the Finding status.
 
 | Added column | Contents |
 | --- | --- |
@@ -149,12 +149,13 @@ The output is `data/output/engagement_candidates.csv`, a UTF-8 CSV with a BOM an
 | `matched_supplier_column` | Original ENG_ALL field producing the retained match |
 | `match_type` | `EXACT`, `SUBSTRING` or `FUZZY` |
 | `found_name_in_source` | Full original value from that engagement field |
+| `finding_status` | `MATCHED`, `NO_MATCH` or `INVALID_NAME` |
 
-An engagement header receives the prefix `ENG.` when it conflicts with an incident header or one of the four added names. Any remaining combined-header conflict is rejected. CSV quoting preserves commas, quotes and embedded newlines. Source values are preserved as loaded, including leading zeros in identifiers.
+An engagement header receives the prefix `ENG.` when it conflicts with an incident header or an added column. Any remaining combined-header conflict is rejected. CSV quoting preserves commas, quotes and embedded newlines. Source values are preserved as loaded, including leading zeros in identifiers.
 
-A run with zero candidates produces a header-only candidate file. [CSV writer](../save_csv.py)
+Each run writes one CSV. A `MATCHED` row holds one retained engagement. A selected incident with a usable search name and zero candidates gets one `NO_MATCH` row. A selected incident whose search name is empty after cleaning and alias replacement gets one `INVALID_NAME` row. Both incident-only rows preserve the incident source values, leave every engagement cell empty, and leave `matched_supplier_column`, `match_type` and `found_name_in_source` empty. `NO_MATCH` retains the standardised search name.
 
-The sibling report `<output-stem>_invalid_names.csv` records `incident_id`, the original `classified_supplier_name` and `finding_status` (`invalid name`) for each selected incident with an empty cleaned name. By default this is `engagement_candidates_invalid_names.csv`. Each run refreshes the report, including a header-only report when all selected names are usable. Valid names with zero matches contribute no rows to either file.
+If an incident ID repeats, any real match takes precedence over an incident-only row. When every occurrence misses, Finding retains the first usable search name, or the first selected row if all names are invalid. With zero selected incidents the CSV contains only its headers. [CSV writer](../save_csv.py)
 
 ## Interpreting results and limitations
 
