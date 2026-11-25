@@ -19,7 +19,7 @@
 <body>
   <main>
     <h1 id="title">Linking output columns</h1>
-    <p>The LLM returns one assessment per <code>candidate_number</code>.</p>
+    <p>Linking appends these eight columns to each assessed CSV row.</p>
     <table aria-labelledby="title">
       <thead>
         <tr><th scope="col">Column</th><th scope="col">Meaning</th></tr>
@@ -35,7 +35,7 @@
         </tr>
         <tr>
           <th scope="row"><code>incident_evidence_citation_strength</code></th>
-          <td>How clearly the incident identifies the supplier service involved.</td>
+          <td>How clearly the incident identifies the supplier service involved. All its rows use the first batch’s rating.</td>
         </tr>
         <tr>
           <th scope="row"><code>engagement_evidence_citation_strength</code></th>

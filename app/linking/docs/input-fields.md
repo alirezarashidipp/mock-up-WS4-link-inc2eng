@@ -33,12 +33,13 @@ This example shows the first three columns of the `engagements` table for one in
 
 | Requirement | Current handling |
 | --- | --- |
-| First row contains headers | Headers must be nonempty and unique after the reader converts them to text. |
+| First row contains headers | The CSV reader uses header names exactly as read. Empty or repeated names raise an error. |
 | `incident_id` header | Required. Each populated source row must have a nonblank value. |
 | `ENGAGEMENT_ID` or `ENG.ENGAGEMENT_ID` header | Required. Each populated source row must have a nonblank value in the selected engagement ID column. |
 | Additional selected fields | A missing column contributes `null` to the request for that field. |
 | Linking output columns in the input | `read_cases()` reserves the eight assessment column names for the output. |
-| Empty rows | A row containing only empty strings or empty cells is skipped for model processing and retained in the source-position CSV output. |
+| Row width | Every row with cells must have exactly as many cells as the header, even if they are all empty. A shorter or longer row raises an error. |
+| Empty rows | A physical blank line or a full-width row of empty cells keeps its position in the output and receives no assessment. |
 | Header-only candidate file | Produces a header-only CSV and makes zero model requests when the required headers are present. |
 
 Header names and identifiers are used as recorded. The linking reader performs no supplier-name cleaning or alias replacement. The field names below are case-sensitive. [Input reader and checks](../read_cases.py)
@@ -57,7 +58,7 @@ For example, suppose rows 2 and 5 contain the same incident and identical engage
 
 ## Values sent to the model
 
-Missing cells, absent optional columns and strings containing only whitespace become JSON `null`. Nonblank source strings keep their original content. CSV fields, including identifiers with leading zeros, are read as text.
+An empty cell, a whitespace-only value or an absent optional column becomes JSON `null`. Nonblank source strings keep their original content. CSV fields, including identifiers with leading zeros, are read as text.
 
 The request includes `classified_supplier_name` and Finding's `standardised_supplier_name` as supplier selection context. The CSV also retains `class`, `matched_supplier_column`, `match_type` and `found_name_in_source` from the candidate file.
 
