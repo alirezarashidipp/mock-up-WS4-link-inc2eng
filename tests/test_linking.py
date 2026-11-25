@@ -32,6 +32,10 @@ def read_csv(path):
         return list(csv.reader(stream))
 
 
+def candidate_rows(incident_id, count):
+    return [[incident_id, "WAN outage", f"ENG{i}", "WAN", ""] for i in range(1, count + 1)]
+
+
 def assessment(number, decision="NOT_LINKED"):
     return {
         "candidate_number": number,
@@ -57,13 +61,14 @@ class LinkingTests(TestCase):
         self.connect = connection_patch.start()
         self.addCleanup(connection_patch.stop)
 
-    def return_assessments(self, *responses):
+    def return_assessments(self, *responses, incident_strengths=()):
         responses = iter(responses)
+        strengths = iter(incident_strengths)
 
         def parse(**request):
             assessments = next(responses)
             parsed = request["response_format"](
-                incident_evidence_citation_strength="STRONG", assessments=assessments
+                incident_evidence_citation_strength=next(strengths, "STRONG"), assessments=assessments
             )
             message = SimpleNamespace(refusal=None, parsed=parsed)
             return SimpleNamespace(choices=[SimpleNamespace(message=message)])
@@ -128,14 +133,98 @@ class LinkingTests(TestCase):
         })
         self.connect.assert_called_once()
 
-    def test_linked_without_evidence_stops_only_the_current_incident(self):
+    def test_hundred_candidates_are_assessed_in_batches_of_eighty_and_twenty(self):
+        source = candidate_rows("001", 100)
+        source.append(source[85][:-1] + ["duplicate source row"])
+        write_csv(self.input, [SOURCE_HEADERS, *source])
+        responses = []
+        for start, size in [(0, 80), (80, 20)]:
+            batch = []
+            for number in range(size, 0, -1):
+                result = assessment(number)
+                result["link_rationale"] = f"Assessed ENG{start + number}."
+                batch.append(result)
+            responses.append(batch)
+        self.return_assessments(*responses, incident_strengths=["MODERATE", "WEAK"])
+
+        linking.main(self.input, self.output)
+
+        calls = self.client.chat.completions.parse.call_args_list
+        self.assertEqual(len(calls), 2)
+        for call, (start, size) in zip(calls, [(0, 80), (80, 20)]):
+            payload = json.loads(call.kwargs["messages"][-1]["content"])
+            expected = [[n, f"ENG{start + n}"] for n in range(1, size + 1)]
+            self.assertEqual([row[:2] for row in payload["engagements"]["rows"]], expected)
+
+        headers, *saved = read_csv(self.output)
+        self.assertEqual([row[:len(SOURCE_HEADERS)] for row in saved], source)
+        rationale = headers.index("link_rationale")
+        self.assertEqual([row[rationale] for row in saved], [f"Assessed {row[2]}." for row in source])
+        strength = headers.index("incident_evidence_citation_strength")
+        self.assertEqual({row[strength] for row in saved}, {"MODERATE"})
+
+    def test_later_batch_cannot_confirm_a_link_it_reports_as_unsupported(self):
+        source = candidate_rows("001", 81)
+        write_csv(self.input, [SOURCE_HEADERS, *source])
+        linked = assessment(1, "LINKED")
+        linked["incident_evidence_citation"] = ["incident_description: WAN outage"]
+        linked["engagement_evidence_citation"] = ["ENGAGEMENT_NAME: WAN"]
+        self.return_assessments([assessment(n) for n in range(1, 81)], [linked],
+                                incident_strengths=["STRONG", "UNSUPPORTED"])
+        with self.assertRaisesRegex(ValueError, "unsupported evidence"):
+            linking.main(self.input, self.output)
+        self.assertEqual(read_csv(self.output)[1:], [row + [""] * len(EXPECTED_COLUMNS) for row in source])
+
+    def test_failed_second_batch_leaves_whole_incident_pending_for_resume(self):
+        complete = candidate_rows("001", 80)
+        pending = candidate_rows("002", 81)
+        write_csv(self.input, [SOURCE_HEADERS, *complete, *pending])
+        full_batch = [assessment(n) for n in range(1, 81)]
+        unsupported_link = assessment(1, "LINKED")
+        unsupported_link["incident_evidence_citation"] = ["incident_description: WAN outage"]
+        unsupported_link["engagement_evidence_citation"] = ["ENGAGEMENT_NAME: WAN"]
+        self.return_assessments(full_batch, full_batch, [unsupported_link],
+                                incident_strengths=["STRONG", "UNSUPPORTED", "STRONG"])
+
+        with self.assertRaisesRegex(ValueError, "unsupported evidence"):
+            linking.main(self.input, self.output)
+
+        headers, *saved = read_csv(self.output)
+        decision = headers.index("link_decision")
+        self.assertEqual([row[decision] for row in saved[:80]], ["NOT_LINKED"] * 80)
+        self.assertEqual(saved[80:], [row + [""] * len(EXPECTED_COLUMNS) for row in pending])
+        self.assertEqual(self.client.chat.completions.parse.call_count, 3)
+
+        self.return_assessments(full_batch, [assessment(1, "INSUFFICIENT_EVIDENCE")])
+        linking.main(self.input, self.output)
+        result = read_csv(self.output)[1:]
+        self.assertEqual(result[:80], saved[:80])
+        self.assertEqual([row[decision] for row in result[80:]], ["NOT_LINKED"] * 80 + ["INSUFFICIENT_EVIDENCE"])
+        self.assertEqual(self.client.chat.completions.parse.call_count, 5)
+
+    def test_linked_accepts_empty_engagement_citations_and_blank_list_items(self):
+        write_csv(self.input, [SOURCE_HEADERS, *candidate_rows("001", 2)])
+        first = assessment(1, "LINKED")
+        first["incident_evidence_citation"] = ["incident_description: WAN outage"]
+        second = assessment(2, "LINKED")
+        second["incident_evidence_citation"] = [" ", "incident_description: WAN outage"]
+        second["engagement_evidence_citation"] = ["ENGAGEMENT_NAME: WAN", ""]
+        self.return_assessments([first, second])
+
+        linking.main(self.input, self.output)
+
+        headers, *rows = read_csv(self.output)
+        self.assertEqual([row[headers.index("link_decision")] for row in rows], ["LINKED", "LINKED"])
+        self.assertEqual(rows[0][headers.index("engagement_evidence_citation")], "[]")
+
+    def test_linked_without_incident_evidence_stops_only_the_current_incident(self):
         first = ["001", "Supplier mentioned", "01", "Support", ""]
         second = ["002", "WAN outage", "02", "Monitoring", ""]
         write_csv(self.input, [SOURCE_HEADERS, first, second])
         unsupported_link = assessment(1, "LINKED")
         unsupported_link["engagement_evidence_citation"] = ["ENGAGEMENT_NAME: Monitoring"]
         self.return_assessments([assessment(1, "INSUFFICIENT_EVIDENCE")], [unsupported_link])
-        with self.assertRaisesRegex(ValueError, "LINKED candidate 1 needs evidence from both records"):
+        with self.assertRaisesRegex(ValueError, "LINKED candidate 1 needs an incident citation"):
             linking.main(self.input, self.output)
         saved = read_csv(self.output)
         self.assertEqual(saved[1][saved[0].index("link_decision")], "INSUFFICIENT_EVIDENCE")

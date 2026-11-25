@@ -2,7 +2,7 @@
 
 Linking reads `data/output/engagement_candidates.csv`. The entry point calls `read_candidates()` to get the headers and raw rows, then `read_cases()` to check and group them while retaining their source positions. [Entry point](../../../linking.py) · [Candidate file reader](../read_cases.py) · [Linking guide](README.md)
 
-## From candidate file rows to one request
+## From candidate file rows to a model request
 
 The request JSON contains these three properties in the order shown.
 
@@ -10,7 +10,7 @@ The request JSON contains these three properties in the order shown.
 | --- | --- |
 | `incident` | A list of the 76 selected incident fields. Each entry contains its source `column_name`, English `definition` and source `value`. |
 | `field_definitions` | Its `engagement` object contains the English definitions for the 22 selected engagement columns. |
-| `engagements` | A table with one shared `columns` list and one array in `rows` per distinct candidate. |
+| `engagements` | A table with one shared `columns` list and one array in `rows` per distinct candidate in this batch, up to 80. |
 
 The field lists in `INCIDENT_FIELDS` and `ENGAGEMENT_FIELDS` determine selection and order. The two YAML files supply the definitions for those fields. An incident field with a missing value still carries its name and definition, with `value` set to `null`. Every engagement row follows the order in `engagements.columns`, including `null` cells. [Selected fields](../fields.py) · [Request builder](../decision.py)
 
@@ -51,7 +51,7 @@ Rows are grouped by the recorded `incident_id`, following the order in which inc
 
 Within an incident, an engagement is identified by the complete tuple of its 22 selected values. Identical tuples share one candidate and one model assessment. Their original row positions are retained, and the assessment is written to every matching position. Records with the same `ENGAGEMENT_ID` but different selected values are separate candidates.
 
-Candidate numbers start at 1 for each incident and follow first appearance of each distinct engagement tuple. The returned assessment order can vary because the application maps results by `candidate_number`. [Grouping and duplicate handling](../read_cases.py) · [Response mapping](../validate_response.py)
+Distinct engagements keep their order of first appearance. Linking sends them in batches of up to 80, repeating the same incident data in every request. Candidate numbers start at 1 in each batch. The application maps each returned `candidate_number` to a candidate within that batch and then to its original CSV rows, regardless of response order. [Grouping and duplicate handling](../read_cases.py) · [Response mapping](../validate_response.py)
 
 For example, suppose rows 2 and 5 contain the same incident and identical engagement values, row 3 contains a different engagement for that incident, and row 4 belongs to another incident. The first incident is sent once with two candidates. Rows 2 and 5 receive the same assessment, row 3 receives the second assessment, and row 4 keeps its original position in the final CSV.
 

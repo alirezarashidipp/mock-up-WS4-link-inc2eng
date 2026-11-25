@@ -41,20 +41,20 @@ The application reads the model and temperature from configuration on each run. 
 | OpenAI | `OPENAI_API_KEY`, `OPENAI_MODEL`, `LLM_TEMPERATURE` |
 | Azure OpenAI | `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, `AZURE_OPENAI_TOKEN_SCOPE`, `AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_API_VERSION`, `AZURE_OPENAI_DEPLOYMENT`, `LLM_TEMPERATURE` |
 
-Azure uses `EnvironmentCredential` and a bearer-token provider for Microsoft Entra authentication. The deployment setting is the name configured on the Azure resource. Both provider paths reuse one client per run, configure a 60-second SDK timeout and permit one SDK retry for eligible request failures.
+Azure uses `EnvironmentCredential` and a bearer-token provider for Microsoft Entra authentication. The deployment setting is the name configured on the Azure resource. Both provider paths reuse one client per run, configure a 180-second SDK request timeout and permit one SDK retry for eligible request failures.
 
 ## Processing one incident
 
 1. `read_candidates()` reads the CSV and returns its headers and rows in source order.
 2. `read_cases()` checks those rows and groups them by `incident_id`. The 76 selected incident values must agree across all rows of that incident.
-3. Within each incident, group engagement rows with identical values across the 22 selected engagement fields. Assign each distinct record a `candidate_number`, starting at 1.
+3. Within each incident, group engagement rows with identical values across the 22 selected engagement fields. Keep distinct records in order of first appearance.
 4. Restore saved progress and select incidents with blank assessments.
-5. Send one incident with all its distinct engagement candidates, field definitions and the system prompt.
-6. Parse the response into `LinkingDecision`. Check that every candidate number appears exactly once.
-7. Map each assessment back to every original row associated with that candidate. Repeat the incident evidence strength across those rows.
-8. Save the complete CSV snapshot before requesting the next incident.
+5. Send up to 80 distinct candidates per request. Repeat the incident, field definitions and system prompt for each batch. Number candidates starting at 1 in each request.
+6. Check that each local candidate number appears exactly once in its response. The first batch establishes the incident evidence strength for all batches. A `LINKED` decision requires a supported incident rating in both the first batch and the current response.
+7. Match each assessment by its local number to its candidate in that batch and then to the candidate's original rows.
+8. After all batches for the incident succeed, save the complete CSV snapshot before requesting the next incident.
 
-Requests run sequentially. All candidates for an incident travel together. Identical engagement inputs share one assessment even when their rows are separated in the candidate file. An engagement ID repeated with different selected field values produces separate candidates. The local `candidate_number` associates a response with its source rows when the model changes response order. [Reader](../read_cases.py) · [Request and response mapping](../decision.py)
+Requests run sequentially. For 100 distinct candidates, the first request carries 80 and the second carries 20. Identical engagement inputs share one assessment even when their rows are separated in the candidate file. An engagement ID repeated with different selected field values produces separate candidates. [Reader](../read_cases.py) · [Request and response mapping](../decision.py)
 
 ## What the model receives and returns
 
@@ -66,7 +66,7 @@ The abbreviated JSON example shows the user message for synthetic incident `inc2
 
 The OpenAI SDK call uses `chat.completions.parse` with `response_format=LinkingDecision`, the configured model and temperature, and `store=False`.
 
-The response contains one shared `incident_evidence_citation_strength` and an `assessments` list. Four candidates require four assessments, even when none is `LINKED`. Each assessment has its candidate number, citations, engagement evidence strength, decision, rationale and confidence with its explanation. The writer maps these values to eight CSV columns. [Response schema](../schema.py)
+The first response supplies the shared `incident_evidence_citation_strength`. Each response's `assessments` list covers every candidate in that request, even when none is `LINKED`. Each assessment has its candidate number, citations, engagement evidence strength, decision, rationale and confidence with its explanation. The writer maps these values to eight CSV columns. [Response schema](../schema.py)
 
 ## Decision rules
 
@@ -103,7 +103,7 @@ Decision confidence expresses how appropriate the chosen label is for the availa
 
 ## CSV columns
 
-The comma-separated CSV uses UTF-8 with a BOM. It preserves every source row, column and their order as text, including duplicate rows and fully blank rows. Fully blank source rows retain blank assessments. Pending candidate rows have eight empty assessment fields.
+The comma-separated CSV uses UTF-8 with a BOM. It preserves every source row, column and their order as text, including duplicate rows and fully blank rows. Fully blank source rows retain blank assessments. Pending candidate rows have eight empty assessment fields. [LLM output columns (HTML)](output-columns.html)
 
 | Added column, in order | Meaning and representation |
 | --- | --- |
@@ -134,9 +134,9 @@ These synthetic cases illustrate the decision rules.
 
 ## Saving and resuming
 
-On a fresh run, the CSV starts with all source rows and blank assessment columns. After each complete incident response, the writer creates a temporary snapshot in the output directory, flushes and synchronises it to disk, replaces `engagement_links.csv.pending`, then atomically replaces `engagement_links.csv`. The next incident request starts after this save succeeds.
+On a fresh run, the CSV starts with all source rows and blank assessment columns. Once all batches for one incident succeed, the writer creates a temporary snapshot in the output directory, flushes and synchronises it to disk, replaces `engagement_links.csv.pending`, then atomically replaces `engagement_links.csv`. Processing the next incident starts after this save succeeds.
 
-If a request or validation fails, saved incidents remain available and the run stops. If an external program prevents final replacement, a completed `.pending` snapshot remains available for recovery. A response interrupted before it reaches disk must be requested again.
+If a request or validation fails, saved incidents remain available and the run stops. On resume, all batches for the unfinished incident run again. If an external program prevents final replacement, a completed `.pending` snapshot remains available for recovery.
 
 Rerun the same command with the same input to continue. The saved header must match the source columns followed by the eight assessment columns in order. Linking checks the source rows, recovers any pending snapshot and requests only incidents with blank assessments.
 
@@ -166,9 +166,9 @@ main(output_file=Path("data/output/engagement_links_review.csv"))
 | Partial saved incident or invalid saved assessment | Restore a consistent checkpoint or start a separate output. |
 | Output replacement fails | Close the program holding the CSV, then rerun to recover the pending snapshot. |
 
-Pydantic enforces required fields, allowed labels, types and extra-field rejection. The code checks candidate coverage. Citation fidelity and the correctness of semantic decisions require reviewing the source evidence.
+Pydantic enforces required fields, allowed labels, types and extra-field rejection. The code checks candidate coverage. For `LINKED`, it requires at least one nonblank incident excerpt, accepts an empty engagement citation list and allows blank entries in either list. Citation fidelity and the correctness of semantic decisions require reviewing the source evidence.
 
-All source rows and snapshots are held in memory, and each incident save rewrites the full CSV. Request size grows with all fields and candidates for an incident, so model context and output limits constrain the usable case size. The provider's eligible retry handles request failures; semantic validation errors stop the run.
+All source rows and snapshots are held in memory, and each incident save rewrites the full CSV. Long source fields can still reach model context or output limits within a batch of 80. Eligible request failures can trigger an SDK retry. Semantic validation errors stop the run.
 
 Synthetic and mocked-response checks establish candidate file mapping, serialization and recovery behavior. Live provider tests establish provider compatibility and observed responses. Decision quality requires reviewed cases and explicit accuracy measurements.
 

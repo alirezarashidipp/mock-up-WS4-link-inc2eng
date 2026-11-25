@@ -8,6 +8,9 @@ from dotenv import load_dotenv
 from openai import AzureOpenAI, OpenAI, OpenAIError
 
 
+REQUEST_TIMEOUT_SECONDS = 180
+
+
 @contextmanager
 def llm_connection():
     """Read the run settings and keep the provider client open for this run."""
@@ -30,7 +33,7 @@ def llm_connection():
     temperature = float(os.environ["LLM_TEMPERATURE"])
 
     if provider == "openai":
-        with OpenAI(api_key=os.environ["OPENAI_API_KEY"], timeout=60, max_retries=1) as client:
+        with OpenAI(api_key=os.environ["OPENAI_API_KEY"], timeout=REQUEST_TIMEOUT_SECONDS, max_retries=1) as client:
             yield client, os.environ["OPENAI_MODEL"], temperature
         return
 
@@ -49,7 +52,7 @@ def llm_connection():
             azure_endpoint=os.environ["AZURE_OPENAI_ENDPOINT"],
             api_version=os.environ["AZURE_OPENAI_API_VERSION"],
             azure_ad_token_provider=azure_token,
-            timeout=60,
+            timeout=REQUEST_TIMEOUT_SECONDS,
             max_retries=1,
         ) as client:
             yield client, os.environ["AZURE_OPENAI_DEPLOYMENT"], temperature

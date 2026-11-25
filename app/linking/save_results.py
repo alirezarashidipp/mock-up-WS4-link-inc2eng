@@ -3,9 +3,6 @@ import os
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
-from .read_progress import pending_incidents, read_progress
-
-
 OUTPUT_COLUMNS = (
     "incident_evidence_citation",
     "engagement_evidence_citation",
@@ -53,15 +50,3 @@ def save_progress(path, headers, rows):
         pending.replace(path)
     finally:
         temporary.unlink(missing_ok=True)
-
-
-def load_progress(path, headers, source_rows):
-    """Open or initialise an output snapshot for callers using the CSV helpers directly."""
-    rows, needs_snapshot = read_progress(path, headers, source_rows, OUTPUT_COLUMNS)
-    if needs_snapshot:
-        save_progress(path, [*headers, *OUTPUT_COLUMNS], rows)
-    return rows
-
-
-def unfinished_cases(cases, rows, source_width):
-    return pending_incidents(cases, rows, source_width, OUTPUT_COLUMNS)

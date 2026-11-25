@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Linking · LLM output columns</title>
+  <style>
+    body { margin: 0; background: #fff; color: #202020; font: 16px/1.45 "Source Sans 3", Arial, sans-serif; }
+    main { max-width: 62rem; margin: 3rem auto; padding: 0 2rem; }
+    h1 { margin: 0; padding-left: 1rem; border-left: 5px solid #db0011; font-size: 2rem; }
+    p { margin: .75rem 0 1.5rem; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: .6rem 1rem; text-align: left; }
+    thead th { background: #202020; color: #fff; }
+    tbody th, td { border-bottom: 1px solid #d7d8d9; }
+    code { font: .875rem/1.4 "IBM Plex Mono", Consolas, monospace; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1 id="title">Linking output columns</h1>
+    <p>The LLM returns one assessment per <code>candidate_number</code>.</p>
+    <table aria-labelledby="title">
+      <thead>
+        <tr><th scope="col">Column</th><th scope="col">Meaning</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th scope="row"><code>incident_evidence_citation</code></th>
+          <td>Excerpts from the incident relevant to this candidate.</td>
+        </tr>
+        <tr>
+          <th scope="row"><code>engagement_evidence_citation</code></th>
+          <td>Excerpts from this engagement that support or challenge the link.</td>
+        </tr>
+        <tr>
+          <th scope="row"><code>incident_evidence_citation_strength</code></th>
+          <td>How clearly the incident identifies the supplier service involved.</td>
+        </tr>
+        <tr>
+          <th scope="row"><code>engagement_evidence_citation_strength</code></th>
+          <td>How clearly the engagement describes the service it covers.</td>
+        </tr>
+        <tr>
+          <th scope="row"><code>link_rationale</code></th>
+          <td>The evidence or gap that explains the decision.</td>
+        </tr>
+        <tr>
+          <th scope="row"><code>link_decision</code></th>
+          <td>Whether this engagement covers the service implicated in the incident.</td>
+        </tr>
+        <tr>
+          <th scope="row"><code>link_decision_confidence_reason</code></th>
+          <td>Why the model assigned this confidence level.</td>
+        </tr>
+        <tr>
+          <th scope="row"><code>link_decision_confidence</code></th>
+          <td>Confidence in the decision (LOW, MEDIUM or HIGH).</td>
+        </tr>
+      </tbody>
+    </table>
+  </main>
+</body>
+</html>

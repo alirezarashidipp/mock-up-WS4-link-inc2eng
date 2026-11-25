@@ -2,9 +2,9 @@
 
 ## Code rules
 
-- One incident can contain multiple engagement candidates.
+- Each request contains one incident and up to 80 distinct engagement candidates.
 - Each supplied `candidate_number` must appear exactly once in the response.
-- Candidate numbers must be between `1` and `candidate_count`.
+- Candidate numbers run from 1 to the number of candidates in the current batch.
 - Results are mapped by candidate number regardless of response order.
 - Every candidate receives the same `incident_evidence_citation_strength` for its incident.
 - Each decision must be `LINKED`, `POSSIBLY_LINKED`, `NOT_LINKED` or `INSUFFICIENT_EVIDENCE`.
