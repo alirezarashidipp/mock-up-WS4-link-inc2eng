@@ -1,24 +1,26 @@
-# Try supplier names with Finding
+# Finding evaluator
 
-1. Open `test_input.csv`. Replace the example `Azure` or add more names, one per row under `claasified_supplier_name`. The standard spelling `classified_supplier_name` also works. Quote a name containing a comma, for example `"Acme, Inc."`.
-2. From the project root, run the script with the project Python environment.
+Double-click **Open Finding.cmd** in this folder on Windows. It starts or reopens the local frontend using the project’s Python environment.
 
-```powershell
-.\.venv\Scripts\python.exe .\eval_finding\run_finding.py
-```
+Type a supplier name and press **Enter**, or click **Run Finding**. The form searches `data/input/ENG_ALL.csv` automatically each time and displays the results below the search box. If the file is added while the page is open, press **Enter** again.
 
-The default reference is `data/input/ENG_ALL.csv`. To search a CSV stored elsewhere, supply its path.
+**Match summary** shows the engagement ID, original matched value, match type and matched field. **All columns** shows the full Finding row in source order. Results are paginated at 50 rows per page.
 
-```powershell
-.\.venv\Scripts\python.exe .\eval_finding\run_finding.py --eng-all "D:\exports\ENG_ALL.csv"
-```
+The default address is [127.0.0.1:8765](http://127.0.0.1:8765/). With the default server running, opening `index.html` directly also lets you type a name and submit it to that frontend. **Change reference** lets you choose another CSV for the current tab. The alternative default filename `data/input/ALL_ENG.csv` is also recognised.
 
-3. Open `eval_finding/finding_report.csv`. Each test row gets an ID such as `EVAL-0001`, including repeated names as separate cases. The report retains the input name, the original engagement columns, the standardised search name, the matched field and value, the match method and `finding_status`.
+Finding reads the current column and alias configurations and applies the project's cleaning, matching and deduplication rules. Selected CSV data and search results are processed in memory. The evaluator writes no CSV files.
 
-| Finding status | Report rows |
+| Outcome | Result |
 | --- | --- |
-| `MATCHED` | One row per matching engagement ID for this test case. |
-| `NO_MATCH` | One row with the test name and an empty engagement ID. |
-| `INVALID_NAME` | One row when cleaning or alias replacement leaves the test name empty. |
+| MATCHED | One row per retained incident–engagement pair. |
+| NO_MATCH | The search name was usable and no engagement matched. |
+| INVALID_NAME | Cleaning or alias replacement left an empty search name. |
+| SKIPPED | Finding skips a blank supplier name or the whole name Unknown. |
 
-The script calls the project’s `finding.main()` with its configured aliases, search columns, matching rules and deduplication. Finding skips blank names and the whole name `Unknown`. A successful run replaces the previous local report. Temporary inputs and output stay under `eval_finding/`.
+To use a reference stored elsewhere as the default on every search:
+
+```powershell
+.\.venv\Scripts\python.exe .\eval_finding\run_finding.py --eng-all "D:\exports\ALL_ENG.csv"
+```
+
+Use `--port` to choose a different local port or `--no-browser` to print the address without opening a tab. The service listens on the local computer only.
