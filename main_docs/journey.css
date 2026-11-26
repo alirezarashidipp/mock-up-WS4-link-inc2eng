@@ -59,6 +59,9 @@ h1 span { transition: color .35s, box-shadow .35s; }
 .eyebrow { color: var(--red); margin-bottom: 5px; }
 h2 { font-size: clamp(27px, 2.35vw, 37px); line-height: 1.13; font-weight: 600; letter-spacing: -.045em; }
 .output-name { font: 12px var(--mono); color: var(--muted); }
+.finding-guide-access { display: grid; gap: 4px; text-align: right; }
+.finding-guide-access a { color: var(--red); font-weight: 600; font-size: 13px; text-underline-offset: 3px; }
+dialog .finding-guide-access { margin-top: 14px; text-align: left; }
 .small-label { display: block; color: var(--muted); }
 .class-grid { min-height: 207px; padding: 25px clamp(18px,3vw,56px); display: grid; grid-template-columns: 1.24fr .48fr .93fr .49fr 1fr; align-items: center; border: 1px solid var(--line); background-color: var(--canvas); background-image: radial-gradient(var(--line) .7px, transparent .85px); background-size: 12px 12px; }
 .cause-box, .name-box { background: var(--paper); padding: 17px clamp(13px,1.4vw,23px); border: 1px solid var(--line); min-width: 0; }

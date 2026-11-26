@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#192127">
+  <title>Finding rules · WS4</title>
+  <link rel="stylesheet" href="journey.css">
+  <link rel="stylesheet" href="finding-guide.css">
+  <link rel="stylesheet" href="finding-outcomes.css">
+  <script src="finding-lab.js" defer></script>
+  <script src="finding-outcomes.js" defer></script>
+  <script src="finding-guide.js" defer></script>
+</head>
+<body class="guide">
+  <header class="mast"><div class="mast-inner">
+    <div class="brand"><span class="brand-sign" aria-hidden="true"></span><b>WS4</b><span class="mast-divider"></span><span>Hybrid Entity Resolution &amp; Evidence-Based Semantic Linking Pipeline</span></div>
+    <a class="return-link" href="index.html">← Pipeline journey</a>
+  </div></header>
+  <main class="page">
+    <header class="guide-hero">
+      <div><p class="hero-kicker"><i aria-hidden="true"></i> Supplier name matching</p><h1>Finding rules</h1><p class="deck">From a supplier name to one row per candidate.</p></div>
+      <div class="hero-specimen" aria-hidden="true">
+        <span class="specimen-label">Query</span><span class="glyph-spacer"></span><b class="glyph-run query-glyphs">cisco</b>
+        <span class="specimen-label">Source</span><b class="glyph-run dim-glyphs">fran</b><b class="glyph-run source-glyphs">cisco</b>
+      </div>
+    </header>
+    <div class="guide-frame">
+      <nav class="guide-menu" aria-label="Finding rules">
+        <a href="#prepare"><span>01</span>Prepare names</a>
+        <a href="#exact"><span>02</span>Exact match</a>
+        <a href="#substring"><span>03</span>Substring</a>
+        <a href="#fuzzy"><span>04</span>Fuzzy match</a>
+        <a href="#dedup"><span>05</span>Deduplication</a>
+        <a href="#status"><span>06</span>Output status</a>
+      </nav>
+      <div class="guide-body">
+        <section class="guide-panel" aria-labelledby="guide-title">
+          <header class="guide-heading"><p class="eyebrow" id="chapter-label"></p><h2 id="guide-title" tabindex="-1">Prepare the supplier name.</h2><p class="guide-summary" id="guide-summary"></p></header>
+          <div id="prepare-body" hidden>
+            <div class="choices" aria-label="Example supplier" role="group" id="prepare-choices"></div>
+            <table class="records prep-table" aria-label="Incident and engagement names at each step">
+              <thead><tr><th scope="col">Step</th><th scope="col">Incident name</th><th scope="col">Engagement field</th></tr></thead>
+              <tbody id="prep-rows"></tbody>
+            </table>
+            <details class="field-note"><summary>What does the cleaner change?</summary>
+              <p>Lowercase both sides. Delete periods, expand <b>&amp;</b> to <b>and</b>, and turn separators into spaces. Remove whole stop words and legal terms such as <b>and</b>, <b>solutions</b> and <b>ltd</b>. Digits and apostrophes stay.</p>
+              <p>Apply one whole-name alias on the incident side. Remove spaces for the comparison; keep the original values in the CSV.</p>
+            </details>
+            <details class="field-note"><summary>Which input rows and fields are searched?</summary>
+              <p><b>CLASSIFIED_INCIDENTS.csv</b> · Select the exact class SUPPLIER; skip a blank name or the whole value Unknown, ignoring case and surrounding spaces.</p>
+              <p><b>ENG_ALL.csv</b> · Read the engagement ID and each available nonempty field in configured order. Examples here use THIRD_PARTY_NAME, then THIRD_PARTY_NORMALISED_NAME.</p>
+            </details>
+          </div>
+          <div id="match-body" hidden>
+            <div class="choices" aria-label="Comparison examples" role="group" id="match-choices"></div>
+            <form id="compare-form" autocomplete="off">
+              <div class="input-pair">
+                <label>Incident supplier<input id="incident-input" maxlength="96" spellcheck="false"></label>
+                <span class="pair-arrow" aria-hidden="true">→</span>
+                <label>Engagement field<input id="reference-input" maxlength="96" spellcheck="false"></label>
+              </div>
+              <div class="rule-verdict">
+                <div class="verdict-top">
+                  <div><span class="small-label">Match result</span><strong id="verdict">Which rule will pass?</strong></div>
+                  <button class="primary" type="submit" id="compare-button" aria-controls="comparison-detail" aria-expanded="false">Reveal match <span aria-hidden="true">→</span></button>
+                </div>
+                <div id="comparison-detail" hidden>
+                  <div class="trace-line"><span>Search name</span><code id="trace-query"></code></div>
+                  <div class="trace-line"><span>Reference</span><code id="trace-reference"></code></div>
+                  <p id="explanation"></p>
+                  <div id="score-line" hidden><div class="scale" aria-hidden="true"><i></i></div><div class="scale-labels"><span>0%</span><span>72% threshold</span><span>100%</span></div></div>
+                </div>
+              </div>
+            </form>
+            <details class="field-note" id="fuzzy-info" hidden><summary>How is similarity calculated?</summary><p>Count the fewest insertions, deletions and substitutions needed. Similarity = 1 − (edits ÷ longer name length). <b>Cisco → misco</b> gives 1 − 1/5 = 80%.</p></details>
+          </div>
+          <div id="outcomes-body" hidden></div>
+          <details class="field-note output-info" id="pair-info" hidden><summary>Pair identity and order</summary><p>Use the incident ID and engagement ID as the pair. A missing or blank ID uses its source row position. Kept pairs stay in first-match order even if a later source row supplies the winning match.</p></details>
+          <details class="field-note output-info" id="output-info" hidden><summary>Which columns does Finding add?</summary>
+            <p>Keep the original incident and engagement columns. Append <code>standardised_supplier_name</code>, <code>matched_supplier_column</code>, <code>match_type</code>, <code>found_name_in_source</code> and <code>finding_status</code>.</p>
+            <p>For an incident without a candidate, engagement and match fields stay empty. Keep the search name when available.</p>
+          </details>
+        </section>
+        <footer class="guide-controls"><button id="prev-rule" type="button" class="back">← Back</button><button type="button" class="primary" id="next-rule">Next rule <span aria-hidden="true">→</span></button></footer>
+      </div>
+    </div>
+    <div class="sr-only" aria-live="polite" id="guide-live"></div>
+    <noscript>Enable JavaScript to explore the Finding rules.</noscript>
+  </main>
+</body>
+</html>
