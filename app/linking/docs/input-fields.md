@@ -9,7 +9,7 @@ The request JSON contains these three properties in the order shown.
 | Property | Content |
 | --- | --- |
 | `incident` | A list of the 76 selected incident fields. Each entry contains its source `column_name`, English `definition` and source `value`. |
-| `field_definitions` | Its `engagement` object contains the English definitions for the 22 selected engagement columns. |
+| `field_definitions` | Its `engagement` object contains the English definitions for the 27 selected engagement columns. |
 | `engagements` | A table with one shared `columns` list and one array in `rows` per distinct candidate in this batch, up to 80. |
 
 The field lists in `INCIDENT_FIELDS` and `ENGAGEMENT_FIELDS` determine selection and order. The two YAML files supply the definitions for those fields. An incident field with a missing value still carries its name and definition, with `value` set to `null`. Every engagement row follows the order in `engagements.columns`, including `null` cells. [Selected fields](../fields.py) · [Request builder](../decision.py)
@@ -27,7 +27,7 @@ This example shows the first three columns of the `engagements` table for one in
 }
 ```
 
-`ENGAGEMENT_ID`, `THIRD_PARTY_ID`, `COUPA_THIRD_PARTY_ID` and the selected BGI IDs are included in the model input. The model returns the supplied `candidate_number` to identify each assessment. The application uses that number to attach the result to the corresponding source rows.
+`ENGAGEMENT_ID`, `THIRD_PARTY_ID`, `COUPA_THIRD_PARTY_ID` and `CONTRACT_ID` are included in the model input. The model returns the supplied `candidate_number` to identify each assessment. The application uses that number to attach the result to the corresponding source rows.
 
 ## Candidate file requirements
 
@@ -51,7 +51,7 @@ When a supplier header collides with an incident header or a Finding detail colu
 
 Candidate rows are grouped by the recorded `incident_id`, following the order in which matched incidents first appear. All 76 selected incident values must agree across that incident's candidate rows. A difference raises an error before model processing. This comparison occurs before whitespace-only values are converted to `null`, so an empty cell and a whitespace string in otherwise repeated incident data can trigger a mismatch.
 
-Within an incident, an engagement is identified by the complete tuple of its 22 selected values. Identical tuples share one candidate and one model assessment. Their original row positions are retained, and the assessment is written to every matching position. Records with the same `ENGAGEMENT_ID` but different selected values are separate candidates.
+Within an incident, an engagement is identified by the complete tuple of its 27 selected values. Identical tuples share one candidate and one model assessment. Their original row positions are retained, and the assessment is written to every matching position. Records with the same `ENGAGEMENT_ID` but different selected values are separate candidates.
 
 Distinct engagements keep their order of first appearance. Linking sends them in batches of up to 80, repeating the same incident data in every request. Candidate numbers start at 1 in each batch. The application maps each returned `candidate_number` to a candidate within that batch and then to its original CSV rows, regardless of response order. [Grouping and duplicate handling](../read_cases.py) · [Response mapping](../validate_response.py)
 
@@ -150,29 +150,34 @@ These 76 definitions reproduce the selected entries in the incident YAML. The wo
 
 ## Engagement fields
 
-Each candidate row starts with its local `candidate_number`, followed by the values of these 22 source fields in the order shown. Definitions reproduce the selected entries in the engagement YAML. [Engagement definitions](../../../config/engagement_columns.yml)
+Each candidate row starts with its local `candidate_number`, followed by the values of these 27 source fields in the order shown. Definitions reproduce the selected entries in the engagement YAML. [Engagement definitions](../../../config/engagement_columns.yml)
 
 | Field | Definition |
 | --- | --- |
-| `ENGAGEMENT_ID` | Identifier assigned to the engagement. |
-| `ENGAGEMENT_NAME` | Name of the engagement. |
-| `ENGAGEMENT_DESCRIPTION_TEXT` | Description of the work or services covered by the engagement. |
-| `THIRD_PARTY_ID` | Identifier assigned to the third party in the engagement record. |
-| `COUPA_THIRD_PARTY_ID` | Identifier of the third party in Coupa. |
-| `THIRD_PARTY_NAME` | Third-party name recorded for the engagement. |
-| `THIRD_PARTY_NORMALISED_NAME` | Standardised name of the third party. |
-| `THIRD_PARTY_TYPE_NAME` | Type of third party recorded for the engagement. |
-| `THIRD_PARTY_STATUS_NAME` | Status of the third party. |
-| `SERVICE_CATEGORY_L1_NAME` | Name of the level-one service category. |
-| `PRIMARY_BENEFICIARY_COUNTRY_TERRITORY_ISO_NAME` | Country or territory name recorded for the primary beneficiary. |
-| `MANAGING_BGI_NAME` | Name of the managing BGI for the engagement. |
-| `MANAGING_BGI_L1_ID` | Identifier at level one of the managing BGI hierarchy. |
-| `MANAGING_BGI_L1_NAME` | Name at level one of the managing BGI hierarchy. |
-| `MANAGING_BGI_L2_ID` | Identifier at level two of the managing BGI hierarchy. |
-| `MANAGING_BGI_L2_NAME` | Name at level two of the managing BGI hierarchy. |
-| `MANAGING_BGI_L3_ID` | Identifier at level three of the managing BGI hierarchy. |
-| `MANAGING_BGI_L3_NAME` | Name at level three of the managing BGI hierarchy. |
-| `MANAGING_BGI_L4_ID` | Identifier at level four of the managing BGI hierarchy. |
-| `MANAGING_BGI_L4_NAME` | Name at level four of the managing BGI hierarchy. |
-| `MANAGING_BGI_L5_ID` | Identifier at level five of the managing BGI hierarchy. |
-| `MANAGING_BGI_L5_NAME` | Name at level five of the managing BGI hierarchy. |
+| `ENGAGEMENT_ID` | Unique identifier for the third-party engagement record. |
+| `ENGAGEMENT_NAME` | Name of the engagement, service, system or supplier arrangement. |
+| `ENGAGEMENT_DESCRIPTION_TEXT` | Free-text description of the service, system, product or business purpose. |
+| `ENGAGEMENT_STATUS_NAME` | Current lifecycle status of the engagement, such as Executed or Active. |
+| `ENGAGEMENT_EXECUTED_DATE` | Date on which the engagement was executed or became effective. |
+| `ENGAGEMENT_NEXT_REVIEW_DATE` | Date scheduled for the next engagement review. |
+| `THIRD_PARTY_ID` | Primary identifier for the external supplier or third party. |
+| `COUPA_THIRD_PARTY_ID` | Supplier identifier linked to the supplier record in Coupa. |
+| `THIRD_PARTY_NAME` | Supplier name recorded in the source system. |
+| `THIRD_PARTY_NORMALISED_NAME` | Standardised supplier name used for consistent matching and reporting. |
+| `THIRD_PARTY_STATUS_NAME` | Current status of the supplier record, such as Active or Inactive. |
+| `THIRD_PARTY_TYPE_NAME` | Classification of the organisation, such as External Third-party. |
+| `CONTRACT_ID` | Unique identifier for the related contract. |
+| `CONTRACT_REFERENCE_NUM_TEXT` | Contract reference number or business-facing contract identifier. |
+| `SOURCE_SERVICE_CATEGORY_NAME` | Original or source classification of the service provided. |
+| `SERVICE_CATEGORY_L1_NAME` | Highest-level service category. |
+| `SERVICE_CATEGORY_L2_NAME` | More detailed service category beneath Level 1. |
+| `SERVICE_CATEGORY_L3_NAME` | Most detailed service category in the hierarchy. |
+| `ICT_IND` | Indicator showing whether the engagement relates to information and communications technology. |
+| `ICT_TYPE_CODE` | Code identifying the type of ICT service or technology involved. |
+| `ENGAGEMENT_SUPPORTS_TIER1_TIER0_APP_IND` | Indicator showing whether the engagement supports a Tier 1 or Tier 0 application. |
+| `IMPORTANT_THIRD_PARTY_SERVICE_IND` | Indicator showing whether the supplier service is classified as important. |
+| `KEY_THIRD_PARTY_IND` | Indicator showing whether the supplier is classified as a key third party. |
+| `MANAGING_BGI_NAME` | HSBC business or Group Infrastructure area responsible for managing the engagement. BGI refers to Businesses / Group Infrastructure. |
+| `CONSUMING_BGI_NAME_LIST` | List of HSBC business or Group Infrastructure areas that consume or use the service. |
+| `CONSUMING_LEGAL_ENTITY_NAME_LIST` | List of HSBC legal entities that use or receive the service. |
+| `CONSUMING_LEGAL_ENTITY_CODE_LIST` | Codes identifying the HSBC legal entities that use or receive the service. |

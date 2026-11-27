@@ -18,11 +18,11 @@
   ],
   "field_definitions": {
     "engagement": {
-      "ENGAGEMENT_ID": "Identifier assigned to the engagement.",
-      "ENGAGEMENT_NAME": "Name of the engagement.",
-      "ENGAGEMENT_DESCRIPTION_TEXT": "Description of the work or services covered by the engagement.",
-      "THIRD_PARTY_NAME": "Third-party name recorded for the engagement.",
-      "SERVICE_CATEGORY_L1_NAME": "Name of the level-one service category."
+      "ENGAGEMENT_ID": "Unique identifier for the third-party engagement record.",
+      "ENGAGEMENT_NAME": "Name of the engagement, service, system or supplier arrangement.",
+      "ENGAGEMENT_DESCRIPTION_TEXT": "Free-text description of the service, system, product or business purpose.",
+      "THIRD_PARTY_NAME": "Supplier name recorded in the source system.",
+      "SERVICE_CATEGORY_L1_NAME": "Highest-level service category."
     }
   },
   "engagements": {

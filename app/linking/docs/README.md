@@ -10,7 +10,7 @@ The incident has already been attributed to a known supplier. Finding retrieves 
 | System prompt | `app/linking/prompt.yml` | Evidence rules and decision instructions |
 | Response schema | `app/linking/schema.py` | Required response structure, labels and field definitions |
 | Incident definitions | `config/incident_columns.yml` | Descriptions of the 76 incident fields |
-| Engagement definitions | `config/engagement_columns.yml` | Descriptions of the 22 engagement fields |
+| Engagement definitions | `config/engagement_columns.yml` | Descriptions of the 27 engagement fields |
 | Connection settings | Project-root `.env` | Provider, credentials, model or deployment, and temperature |
 | Result | `data/output/engagement_links.csv` | Original source rows and columns followed by eight assessment columns |
 
@@ -39,7 +39,7 @@ Azure uses `EnvironmentCredential` and a bearer-token provider for Microsoft Ent
 
 1. `read_candidates()` reads the CSV and returns its headers and rows in source order.
 2. `read_cases()` checks the Finding status and groups candidate rows by `incident_id`. The 76 selected incident values must agree across the candidate rows of that incident.
-3. Within each incident, group engagement rows with identical values across the 22 selected engagement fields. Keep distinct records in order of first appearance.
+3. Within each incident, group engagement rows with identical values across the 27 selected engagement fields. Keep distinct records in order of first appearance.
 4. Restore saved progress and select incidents with blank assessments.
 5. Send up to 80 distinct candidates per request. Each batch repeats the incident and field definitions and numbers its candidates from 1.
 6. Check that each local candidate number appears exactly once. After the first batch, append its incident evidence rating to the system prompt and ask the model to return that rating for the remaining batches.
@@ -52,7 +52,7 @@ Requests run sequentially. For 100 distinct candidates, the first request carrie
 
 The request starts with the `incident` list, followed by `field_definitions` and then `engagements`. Each of the 76 incident entries gives the `column_name`, its English `definition` and the source `value`. An incident citation uses the column name and an excerpt from that value.
 
-The engagement definitions appear once in `field_definitions.engagement`. The `engagements.columns` list starts with `candidate_number`, followed by the 22 selected engagement field names. Each array in `engagements.rows` holds one candidate's values in that order. Across both records, missing or whitespace-only values become JSON `null`. Other values retain their source content, including `incident_id` and `ENGAGEMENT_ID`.
+The engagement definitions appear once in `field_definitions.engagement`. The `engagements.columns` list starts with `candidate_number`, followed by the 27 selected engagement field names. Each array in `engagements.rows` holds one candidate's values in that order. Across both records, missing or whitespace-only values become JSON `null`. Other values retain their source content, including `incident_id` and `ENGAGEMENT_ID`.
 
 The abbreviated JSON example shows the user message for synthetic incident `inc2`. It includes three incident fields and four engagement rows, each with a local `candidate_number` and five source values. [Example request (JSON)](llm-request-example.json)
 

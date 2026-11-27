@@ -282,7 +282,9 @@ class LinkingTests(TestCase):
             ["002", "SUPPLIER", "Acme", ""], ["003", "SUPPLIER", "Solutions Ltd", ""],
         ])
         write_csv(input_dir / "ENG_ALL.csv", [
-            ["ENGAGEMENT_ID", "THIRD_PARTY_NAME", "finding_status"], ["01", "Acme", "source value"],
+            ["ENGAGEMENT_ID", "THIRD_PARTY_NAME", "finding_status", "CONTRACT_ID",
+             "CONSUMING_LEGAL_ENTITY_CODE_LIST", "MANAGING_BGI_L3_ID"],
+            ["01", "Acme", "source value", "0007", "LE01, LE02", "original BGI ID"],
         ])
         finding.main(input_dir, self.input)
         headers, *source = read_csv(self.input)
@@ -302,7 +304,15 @@ class LinkingTests(TestCase):
         request = self.client.chat.completions.parse
         request.assert_called_once()
         payload = json.loads(request.call_args.kwargs["messages"][1]["content"])
-        self.assertEqual([row[1] for row in payload["engagements"]["rows"]], ["01"])
+        table = payload["engagements"]
+        self.assertEqual(len(table["rows"]), 1)
+        sent = dict(zip(table["columns"], table["rows"][0]))
+        self.assertEqual(sent["ENGAGEMENT_ID"], "01")
+        self.assertEqual(sent["CONTRACT_ID"], "0007")
+        self.assertEqual(sent["CONSUMING_LEGAL_ENTITY_CODE_LIST"], "LE01, LE02")
+        self.assertNotIn("MANAGING_BGI_L3_ID", sent)
+        self.assertEqual(payload["field_definitions"]["engagement"]["CONTRACT_ID"],
+                         "Unique identifier for the related contract.")
 
     def test_only_incident_status_rows_need_no_model_connection(self):
         headers = SOURCE_HEADERS + ["retrieval outcome"]
