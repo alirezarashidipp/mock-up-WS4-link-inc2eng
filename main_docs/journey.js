@@ -178,6 +178,7 @@
     if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) dialog.close();
   });
   document.addEventListener('keydown', event => {
+    if (element('journey-panel').hidden || event.target.closest?.('[role="tablist"]')) return;
     if (dialog.open || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || event.repeat) return;
     if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
     event.preventDefault();

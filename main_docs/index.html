@@ -7,9 +7,11 @@
   <title>Hybrid Entity Resolution &amp; Evidence-Based Semantic Linking Pipeline</title>
   <link rel="stylesheet" href="journey.css">
   <link rel="stylesheet" href="evidence.css">
+  <link rel="stylesheet" href="pipeline-map.css">
   <script src="register.js" defer></script>
   <script src="evidence.js" defer></script>
   <script src="journey.js" defer></script>
+  <script src="pipeline-map.js" defer></script>
 </head>
 <body>
   <header class="mast">
@@ -19,6 +21,14 @@
     </div>
   </header>
   <main class="page">
+    <div class="view-bar">
+      <div class="view-tabs" role="tablist" aria-label="Presentation view">
+        <button type="button" id="journey-tab" role="tab" aria-selected="true" aria-controls="journey-panel">Case journey</button>
+        <button type="button" id="map-tab" role="tab" aria-selected="false" aria-controls="map-panel" tabindex="-1">Pipeline map</button>
+      </div>
+      <a class="map-popout" href="index.html#pipeline-map" target="_blank" rel="noopener">Open map in new tab <span aria-hidden="true">↗</span></a>
+    </div>
+    <div id="journey-panel" role="tabpanel" aria-labelledby="journey-tab">
     <section class="hero" aria-labelledby="incident-title">
       <div class="incident-copy">
         <div class="hero-kicker"><i aria-hidden="true"></i> Incident record</div>
@@ -80,6 +90,56 @@
       </footer>
     </div>
     <p class="sr-only" aria-live="polite" id="announcement"></p>
+    </div>
+    <section id="map-panel" role="tabpanel" aria-labelledby="map-tab" hidden>
+      <header class="map-incident">
+        <div>
+          <p class="map-incident-label"><span>INC-1</span> Synthetic incident</p>
+          <h1><em>Cisco</em> confirmed its firmware defect took the Leeds branch router offline.</h1>
+        </div>
+        <dl class="map-classification">
+          <div><dt>Model 1 class</dt><dd>SUPPLIER</dd></div>
+          <div><dt>Supplier name</dt><dd>Cisco</dd></div>
+        </dl>
+      </header>
+
+      <div class="map-board" id="map-board">
+        <canvas id="map-wires" aria-hidden="true"></canvas>
+        <section class="map-stage" aria-labelledby="map-register-title">
+          <h2 id="map-register-title">Engagement register</h2>
+          <p class="map-count"><strong>12,000</strong><span>engagements</span></p>
+          <div class="map-register" id="map-register">
+            <div class="map-register-head"><span>Supplier search</span><b>Cisco</b></div>
+            <div class="map-field" id="map-field" aria-hidden="true"></div>
+            <div class="map-register-range" aria-hidden="true"><span>ENG1</span><i></i><span>ENG12000</span></div>
+          </div>
+        </section>
+
+        <section class="map-stage" aria-labelledby="map-finding-title">
+          <h2 id="map-finding-title">Finding <span>High recall</span></h2>
+          <p class="map-count"><strong id="map-found-count">5</strong><span>candidates</span></p>
+          <div class="map-candidates" id="map-candidates" role="group" aria-label="Select a candidate to inspect its evidence"></div>
+        </section>
+
+        <section class="map-stage" aria-labelledby="map-linking-title">
+          <h2 id="map-linking-title">LLM linking <span>High precision</span></h2>
+          <p class="map-count"><strong id="map-result-count">3</strong><span id="map-breakdown">2 linked · 1 possible</span></p>
+          <div class="map-results" id="map-results" role="group" aria-label="Linked and possibly linked engagements"></div>
+          <details id="map-others" class="map-others">
+            <summary id="map-others-label">Not linked (<span id="map-other-count">2</span>)</summary>
+            <div class="map-results" id="map-other-results"></div>
+          </details>
+        </section>
+      </div>
+
+      <section class="map-evidence" id="map-evidence" aria-label="Evidence for the selected engagement" tabindex="-1">
+        <header><h2>Selected engagement</h2><strong id="map-evidence-id"></strong><span id="map-evidence-supplier"></span></header>
+        <div><h3>Engagement scope</h3><p id="map-scope"></p></div>
+        <div><h3>LLM assessment <span id="map-verdict"></span></h3><p id="map-reason"></p></div>
+        <button class="map-return" id="map-return" type="button">↑ Back to candidates</button>
+      </section>
+      <p class="sr-only" id="map-announcement" role="status"></p>
+    </section>
     <noscript>Enable JavaScript to play this interactive case.</noscript>
   </main>
   <dialog id="rules-dialog" aria-labelledby="rules-title">

@@ -13,10 +13,6 @@
       summary: '1–4 characters require a whole word. From 5 characters, the query can appear inside or across words.' },
     { id: 'fuzzy', label: 'Match priority 3', title: 'How close is close enough?',
       summary: 'For queries of 5+ characters, compare consecutive reference words. The first score at or above 72% passes.' },
-    { id: 'dedup', label: 'Candidate selection', title: 'Which match survives?',
-      summary: 'Search every available configured field in order. Keep the strongest method for each incident–engagement pair.' },
-    { id: 'status', label: 'Candidate CSV', title: 'What gets written?',
-      summary: 'Try four incidents against the same engagement register.' },
   ];
   const examples = {
     prepare: [
@@ -192,25 +188,17 @@
     byId('prev-rule').disabled = chapter === 0;
     byId('next-rule').firstChild.textContent = chapter === chapters.length - 1 ? 'Start again ' : 'Next rule ';
     const prep = config.id === 'prepare';
-    const outcome = config.id === 'dedup' || config.id === 'status';
     byId('prepare-body').hidden = !prep;
-    byId('match-body').hidden = prep || outcome;
-    byId('outcomes-body').hidden = !outcome;
-    byId('pair-info').hidden = config.id !== 'dedup';
-    byId('output-info').hidden = config.id !== 'status';
+    byId('match-body').hidden = prep;
     byId('fuzzy-info').hidden = config.id !== 'fuzzy';
-    if (outcome) {
-      window.mountFindingOutcomes(byId('outcomes-body'), config.id);
-    } else {
-      const choice = selected.get(config.id) ?? 0;
-      const change = index => {
-        selected.set(config.id, index);
-        if (prep) prepare(index);
-        else setComparison(config.id, index);
-      };
-      drawChoices(byId(prep ? 'prepare-choices' : 'match-choices'), examples[config.id], choice, change);
-      change(choice);
-    }
+    const choice = selected.get(config.id) ?? 0;
+    const change = index => {
+      selected.set(config.id, index);
+      if (prep) prepare(index);
+      else setComparison(config.id, index);
+    };
+    drawChoices(byId(prep ? 'prepare-choices' : 'match-choices'), examples[config.id], choice, change);
+    change(choice);
     if (focusTitle) byId('guide-title').focus({ preventScroll: true });
   }
 

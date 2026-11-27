@@ -7,9 +7,7 @@
   <title>Finding rules · WS4</title>
   <link rel="stylesheet" href="journey.css">
   <link rel="stylesheet" href="finding-guide.css">
-  <link rel="stylesheet" href="finding-outcomes.css">
   <script src="finding-lab.js" defer></script>
-  <script src="finding-outcomes.js" defer></script>
   <script src="finding-guide.js" defer></script>
 </head>
 <body class="guide">
@@ -19,7 +17,7 @@
   </div></header>
   <main class="page">
     <header class="guide-hero">
-      <div><p class="hero-kicker"><i aria-hidden="true"></i> Supplier name matching</p><h1>Finding rules</h1><p class="deck">From a supplier name to one row per candidate.</p></div>
+      <div><p class="hero-kicker"><i aria-hidden="true"></i> Supplier name matching</p><h1>Finding rules</h1><p class="deck">How Finding cleans and matches supplier names.</p></div>
       <div class="hero-specimen" aria-hidden="true">
         <span class="specimen-label">Query</span><span class="glyph-spacer"></span><b class="glyph-run query-glyphs">cisco</b>
         <span class="specimen-label">Source</span><b class="glyph-run dim-glyphs">fran</b><b class="glyph-run source-glyphs">cisco</b>
@@ -31,8 +29,6 @@
         <a href="#exact"><span>02</span>Exact match</a>
         <a href="#substring"><span>03</span>Substring</a>
         <a href="#fuzzy"><span>04</span>Fuzzy match</a>
-        <a href="#dedup"><span>05</span>Deduplication</a>
-        <a href="#status"><span>06</span>Output status</a>
       </nav>
       <div class="guide-body">
         <section class="guide-panel" aria-labelledby="guide-title">
@@ -75,12 +71,6 @@
             </form>
             <details class="field-note" id="fuzzy-info" hidden><summary>How is similarity calculated?</summary><p>Count the fewest insertions, deletions and substitutions needed. Similarity = 1 − (edits ÷ longer name length). <b>Cisco → misco</b> gives 1 − 1/5 = 80%.</p></details>
           </div>
-          <div id="outcomes-body" hidden></div>
-          <details class="field-note output-info" id="pair-info" hidden><summary>Pair identity and order</summary><p>Use the incident ID and engagement ID as the pair. A missing or blank ID uses its source row position. Kept pairs stay in first-match order even if a later source row supplies the winning match.</p></details>
-          <details class="field-note output-info" id="output-info" hidden><summary>Which columns does Finding add?</summary>
-            <p>Keep the original incident and engagement columns. Append <code>standardised_supplier_name</code>, <code>matched_supplier_column</code>, <code>match_type</code>, <code>found_name_in_source</code> and <code>finding_status</code>.</p>
-            <p>For an incident without a candidate, engagement and match fields stay empty. Keep the search name when available.</p>
-          </details>
         </section>
         <footer class="guide-controls"><button id="prev-rule" type="button" class="back">← Back</button><button type="button" class="primary" id="next-rule">Next rule <span aria-hidden="true">→</span></button></footer>
       </div>
