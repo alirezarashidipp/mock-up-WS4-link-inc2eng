@@ -70,7 +70,7 @@ The incident name and each configured engagement search field use the following 
 
 | Set | Current contents |
 | --- | --- |
-| `STOP_WORDS` | `a`, `an`, `and`, `of`, `on`, `the`, `holding`, `holdings`, `llm`, `partners`, `solution`, `solutions` |
+| `STOP_WORDS` | `a`, `an`, `and`, `of`, `on`, `the`, `holding`, `holdings`, `llm`, `partners`, `solution`, `solutions`, `vendor`, `global`, `bureau` |
 | `LEGAL_SUFFIXES` | `company`, `corp`, `corporation`, `inc`, `incorporated`, `limited`, `llc`, `llp`, `ltd`, `plc` |
 | `SPECIAL_CHARACTERS` | Semicolons, commas, colon, Arabic semicolon and comma, round/square/curly brackets, hyphen/en dash/em dash, underscore, slash, backslash, vertical bar, and straight/curly double quotation marks |
 
@@ -81,12 +81,14 @@ Listed words are removed wherever they appear. Digits and apostrophes are retain
 Exceptions live in `config/supplier_aliases.yml`. Both keys and replacement values pass through the same cleaning function when loaded.
 
 ```yaml
-gcp: Google Cloud Platform
+gcp: Google
 azure: Microsoft
 bt: British Telecom
+successfactors: SAP
+amazon web services: AWS
 ```
 
-An alias applies once to a whole, nonempty cleaned incident name. `GCP` becomes `google cloud platform`, while `gcp support` retains both words. A later entry takes precedence when keys clean to the same name. [Alias file](../../../config/supplier_aliases.yml) · [Replacement functions](../replace_names.py)
+An alias applies once to a whole, nonempty cleaned incident name. For example, `Vendor G.C.P.` cleans to `gcp` and the alias gives the search name `google`. The longer name `GCP Support` keeps the search name `gcp support`. A later entry takes precedence when keys clean to the same name. [Alias file](../../../config/supplier_aliases.yml) · [Replacement functions](../replace_names.py)
 
 ## Engagement name preparation
 

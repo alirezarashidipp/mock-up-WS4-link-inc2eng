@@ -18,7 +18,7 @@
     prepare: [
       ['BT', 'B.T. Ltd.', 'British Telecom plc'],
       ['Azure', 'Azure', 'Microsoft Ltd.'],
-      ['GCP', 'G.C.P.', 'Google Cloud Platform Inc.'],
+      ['GCP', 'G.C.P.', 'Google LLC'],
       ['Reverse the alias', 'British Telecom', 'B.T. Ltd.'],
     ],
     exact: [

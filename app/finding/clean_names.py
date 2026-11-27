@@ -1,6 +1,7 @@
 STOP_WORDS = {
     "a", "an", "and", "of", "on", "the",
     "holding", "holdings", "llm", "partners", "solution", "solutions",
+    "vendor", "global", "bureau",
 }
 
 LEGAL_SUFFIXES = {

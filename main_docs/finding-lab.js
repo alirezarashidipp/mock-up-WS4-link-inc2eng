@@ -4,10 +4,17 @@
 
   const removedWords = new Set([
     'a', 'an', 'and', 'of', 'on', 'the', 'holding', 'holdings', 'llm', 'partners', 'solution', 'solutions',
+    'vendor', 'global', 'bureau',
     'company', 'corp', 'corporation', 'inc', 'incorporated', 'limited', 'llc', 'llp', 'ltd', 'plc',
   ]);
   // Cleaned whole-name replacements from config/supplier_aliases.yml, applied once to incidents.
-  const aliases = Object.freeze({ gcp: 'google cloud platform', azure: 'microsoft', bt: 'british telecom' });
+  const aliases = Object.freeze({
+    gcp: 'google',
+    azure: 'microsoft',
+    bt: 'british telecom',
+    successfactors: 'sap',
+    'amazon web services': 'aws',
+  });
   const separators = /[;,:؛،()[\]{}\-–—_/\\|"“”]/gu;
   const whitespace = /[\p{White_Space}\u001c-\u001f]+/u;
   const fuzzyThreshold = 0.72;

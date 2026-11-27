@@ -134,6 +134,23 @@ class FindingTests(TestCase):
         ])
         self.assertEqual(rows[-1][self.candidate["source_value"]], "North-and-Star 24 Solution Ltd.")
 
+    def test_supplier_words_and_product_aliases_in_candidate_csv(self):
+        cases = [
+            ("Vendor G.C.P.", "Google Global LLC", "google", "EXACT"),
+            ("SuccessFactors", "SAP (UK) LIMITED", "sap", "SUBSTRING"),
+            ("Amazon Web Services", "AWS", "aws", "EXACT"),
+            ("Equifax bureau", "Equifax Workforce Solutions LLC", "equifax", "SUBSTRING"),
+            ("Vendoria GlobalNet Bureaucracy", "Vendoria GlobalNet Bureaucracy Ltd",
+             "vendoria globalnet bureaucracy", "EXACT"),
+        ]
+        for incident_name, source_name, search_name, method in cases:
+            with self.subTest(incident_name=incident_name):
+                row, = self.run_finding([("I1", "SUPPLIER", incident_name)], [("01", source_name, "", "")])
+                self.assertEqual(row[self.incident["supplier"]], incident_name)
+                self.assertEqual(row[self.candidate["search_name"]], search_name)
+                self.assertEqual(row[self.candidate["method"]], method)
+                self.assertEqual(row[self.candidate["source_value"]], source_name)
+
     def test_one_csv_for_matches_unmatched_and_invalid_names_in_source_order(self):
         incidents = [
             ("001", "SUPPLIER", " B.T. "), ("002", "SUPPLIER", "North Star"),
