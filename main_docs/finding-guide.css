@@ -57,9 +57,9 @@
 #score-line { margin-top: 12px; max-width: 490px; }
 .scale { position: relative; height: 5px; background: var(--line); }
 .scale i { display: block; height: 100%; width: var(--score); background: var(--red); transform-origin: left; animation: measure .5s ease-out; }
-.scale::after { content: ""; height: 11px; border-left: 2px solid var(--ink); position: absolute; left: 72%; top: -3px; }
+.scale::after { content: ""; height: 11px; border-left: 2px solid var(--ink); position: absolute; left: var(--threshold); top: -3px; }
 .scale-labels { display: flex; justify-content: space-between; margin-top: 5px; position: relative; font: 10px var(--mono); color: var(--muted); }
-.scale-labels span:nth-child(2) { position: absolute; left: 72%; transform: translateX(-50%); }
+.scale-labels span:nth-child(2) { position: absolute; left: var(--threshold); transform: translateX(-50%); }
 @keyframes measure { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 @media (max-height: 820px) {
   .guide-hero { padding-block: 17px; }.guide-panel { padding-block: 16px 13px; }

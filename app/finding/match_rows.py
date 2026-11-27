@@ -3,7 +3,7 @@ from fuzzy_match.algorithims import levenshtein
 
 MAX_SHORT_NAME_LENGTH = 4
 MIN_FUZZY_LENGTH = 5
-MIN_FUZZY_SIMILARITY = 0.72
+MIN_FUZZY_SIMILARITY = 0.50
 
 
 def fuzzy_partial_match(query, value):

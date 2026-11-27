@@ -116,6 +116,16 @@ class FindingTests(TestCase):
             ("I3", "03", "SUBSTRING"), ("I4", "04", "SUBSTRING"),
         ])
 
+    def test_fuzzy_accepts_fifty_percent_and_rejects_lower_scores(self):
+        rows = self.run_finding([("I1", "SUPPLIER", "Cisco")], [
+            ("01", "mitco", "", ""),   # 60%
+            ("02", "Syscom", "", ""),  # 50%
+            ("03", "Ricoh", "", ""),   # 40%
+        ])
+        self.assertEqual([(row["found_name_in_source"], row["match_type"]) for row in rows], [
+            ("mitco", "FUZZY"), ("Syscom", "FUZZY"),
+        ])
+
     def test_shared_cleaning_and_incident_only_alias(self):
         incidents = [
             ("I1", "SUPPLIER", "B.T."), ("I2", "SUPPLIER", "North & Star 24 Holdings"),

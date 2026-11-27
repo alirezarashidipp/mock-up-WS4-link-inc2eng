@@ -120,9 +120,9 @@ For example, an `AXA` incident matches `THIRD_PARTY_NAME = AXA UK` by substring 
 
 The `fuzzy-match` library supplies normalized Levenshtein similarity. Its score is `1 - edit_distance / max(query_length, candidate_length)`, with insertion, deletion and substitution costs of one. An adjacent transposition can require two edits.
 
-The fuzzy pass requires a query of at least five characters and similarity of at least `0.72`. It concatenates contiguous words from the cleaned reference field for comparison. Length bounds skip sequences that cannot reach the threshold. The first passing sequence establishes the match.
+The fuzzy pass requires a query of at least five characters and similarity of at least 50%. It concatenates contiguous words from the cleaned reference field for comparison. Length bounds skip sequences that cannot reach the threshold. The first passing sequence establishes the match.
 
-For example, `microsfot` compared with `microsoft` has a score of approximately `0.778`. It can match the cleaned name from `Microsoft Ltd`. The candidate file records `FUZZY`. [12 worked scenarios](matching.html)
+For example, `Cisco` matches `Syscom` at exactly 50% (three edits across six characters). The candidate file records `FUZZY`. Against `Ricoh`, the score is 40% and the field does not match. [12 worked scenarios](matching.html)
 
 ## Candidate deduplication
 
@@ -174,7 +174,7 @@ If an incident ID repeats, any real match takes precedence over an incident-only
 
 Removing common words can make different supplier names equal. For example, `Acme Holdings` and `Acme Solutions` both reduce to `acme`. Supplier status, geography, description and service category are carried forward. Retrieval uses the configured search fields.
 
-The implementation loads tables and candidates into memory and scans all incident–engagement pairs. The `0.72` threshold is a configured rule. A representative labelled dataset is needed to measure retrieval quality for the intended workload.
+The implementation loads tables and candidates into memory and scans all incident–engagement pairs. A representative labelled dataset is needed to measure retrieval quality at the 50% threshold.
 
 ## Troubleshooting and code map
 

@@ -17,7 +17,7 @@ Search each available, nonempty cleaned `search_columns_eng` field in YAML order
 | `EXACT` | 1+ | Both full cleaned names are equal without spaces. |
 | `SUBSTRING` | 1–4 | Match a whole reference word (`ICE` matches `ICE Data Services` and skips `Office Supplies`). |
 | `SUBSTRING` | 5+ | Match anywhere in the cleaned field without spaces, including across words. |
-| `FUZZY` | 5+ | Require normalized Levenshtein similarity ≥ `0.72` against one or more consecutive cleaned reference words joined without spaces. |
+| `FUZZY` | 5+ | Require normalized Levenshtein similarity ≥ 50% against one or more consecutive cleaned reference words joined without spaces. |
 
 ## Deduplication
 

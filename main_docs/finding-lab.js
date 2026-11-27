@@ -17,7 +17,7 @@
   });
   const separators = /[;,:؛،()[\]{}\-–—_/\\|"“”]/gu;
   const whitespace = /[\p{White_Space}\u001c-\u001f]+/u;
-  const fuzzyThreshold = 0.72;
+  const fuzzyThreshold = 0.50;
 
   function cleanName(value) {
     const words = String(value ?? '').toLowerCase().replaceAll('.', '')
@@ -110,5 +110,5 @@
     return { ...result, reason: bestScore === null ? 'fuzzy_length' : 'fuzzy_below', score: bestScore };
   }
 
-  window.FindingLab = Object.freeze({ compare, cleanName, replaceAlias, aliases });
+  window.FindingLab = Object.freeze({ compare, cleanName, replaceAlias, aliases, fuzzyThreshold });
 })();

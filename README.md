@@ -31,7 +31,7 @@ For subsequent runs, use the last command.
 
 Open `data/output/engagement_candidates.csv`. Finding selects rows whose `class` is exactly `SUPPLIER` and whose supplier name contains text. It skips the whole value `Unknown` regardless of case or surrounding whitespace. It cleans the incident name and every configured engagement search field, removing whole words such as `vendor`, `global` and `bureau`. It then applies whole-name YAML aliases to the incident name only. For example, `Vendor GCP` becomes `google` and matches `Google LLC`. The candidate file retains the original source values.
 
-For a search name of one to four characters after alias replacement and space removal, `SUBSTRING` requires a whole word in the cleaned engagement field. For example, `ICE` matches `ICE Data Services` and skips `Office Supplies`. Queries of five or more characters can also match inside a word or across spaces. [Matching rules](app/finding/docs/README.md#matching-rules-and-priority)
+For a search name of one to four characters after alias replacement and space removal, `SUBSTRING` requires a whole word in the cleaned engagement field. For example, `ICE` matches `ICE Data Services` and skips `Office Supplies`. Queries of five or more characters can also match inside a word or across spaces. If neither `EXACT` nor `SUBSTRING` matches the field, these longer queries qualify for `FUZZY` at 50% Levenshtein similarity or higher against one or more adjacent words. [Matching rules](app/finding/docs/README.md#matching-rules-and-priority)
 
 Finding writes one CSV. Filter its `finding_status` column to see the outcome for each selected incident.
 

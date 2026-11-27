@@ -149,7 +149,7 @@
       <tr><th scope="row">EXACT</th><td>1+</td><td>Same full name, ignoring spaces</td><td>Cisco = CISCO</td></tr>
       <tr><th scope="row">SUBSTRING</th><td>1–4</td><td>Whole word only</td><td>IBM → IBM Cloud ✓<br>IBM → ibmotor ✗</td></tr>
       <tr><th scope="row">SUBSTRING</th><td>5+</td><td>Anywhere, ignoring spaces</td><td>Cisco → Fran<mark>cisco</mark></td></tr>
-      <tr><th scope="row">FUZZY</th><td>5+</td><td>Levenshtein ≥ 72% on one or more adjacent words</td><td>Cisco → misco (80%)</td></tr>
+      <tr><th scope="row">FUZZY</th><td>5+</td><td>Levenshtein ≥ 50% on one or more adjacent words</td><td>Cisco → misco (80%)</td></tr>
     </tbody></table>
     <p class="note footnote">Each incident–engagement pair keeps its strongest match: EXACT → SUBSTRING → FUZZY.</p>
     <p class="finding-guide-access"><a href="finding-rules.html">Open the interactive Finding guide →</a></p>

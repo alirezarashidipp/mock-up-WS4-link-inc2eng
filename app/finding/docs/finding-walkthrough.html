@@ -55,7 +55,7 @@
     <li>
       <h2>Recover spelling errors with fuzzy matching</h2>
       <p>The Python library <code>fuzzy-match==0.0.1</code> provides <strong>Levenshtein similarity</strong>. It scores how many character insertions, deletions or substitutions separate two names, relative to the longer name. This gives a repeatable way to catch typos.</p>
-      <p>For a search name of at least <strong>5 characters</strong>, Finding compares it with adjacent whole words in the engagement field. A score of <strong>0.72 or higher</strong> qualifies.</p>
+      <p>For a search name of at least <strong>5 characters</strong>, Finding compares it with adjacent whole words in the engagement field. A score of <strong>50% or higher</strong> qualifies.</p>
       <p class="example"><code>Microsfot</code> against cleaned <code>Microsoft Ltd</code> → two edits in nine letters → <strong>0.778 · FUZZY</strong></p>
       <p>A lower threshold catches more typos but can also admit unrelated suppliers with similar names. A higher threshold can miss genuine spelling variants.</p>
     </li>

@@ -2,6 +2,7 @@
   'use strict';
 
   const lab = window.FindingLab;
+  const thresholdLabel = (lab.fuzzyThreshold * 100) + '%';
   const byId = id => document.getElementById(id);
   const menu = [...document.querySelectorAll('.guide-menu a')];
   const chapters = [
@@ -12,7 +13,7 @@
     { id: 'substring', label: 'Match priority 2', title: 'Where does the name appear?',
       summary: '1–4 characters require a whole word. From 5 characters, the query can appear inside or across words.' },
     { id: 'fuzzy', label: 'Match priority 3', title: 'How close is close enough?',
-      summary: 'For queries of 5+ characters, compare consecutive reference words. The first score at or above 72% passes.' },
+      summary: 'For queries of 5+ characters, compare consecutive reference words. The first score at or above ' + thresholdLabel + ' passes.' },
   ];
   const examples = {
     prepare: [
@@ -35,12 +36,16 @@
     fuzzy: [
       ['One edit', 'Cisco', 'misco'],
       ['Two edits', 'Cisco', 'mitco'],
-      ['Adjacent words', 'Cisco', 'UK mis co service'],
-      ['Exactly 72%', 'Northbridge Digital Systems', 'NorthbridgeDigitalBanking'],
+      ['Adjacent words', 'Cisco', 'mis co service'],
+      ['Exactly 50%', 'Cisco', 'Syscom'],
+      ['Below threshold', 'Cisco', 'Ricoh'],
     ],
   };
   const incidentInput = byId('incident-input');
   const referenceInput = byId('reference-input');
+  const scoreLine = byId('score-line');
+  scoreLine.style.setProperty('--threshold', thresholdLabel);
+  byId('threshold-label').textContent = thresholdLabel + ' threshold';
   const panelLinks = menu.map(a => a.hash.slice(1));
   const selected = new Map();
   let chapter = 0;
@@ -154,9 +159,9 @@
       embedded: 'All query characters appear together after spaces are removed.',
       short_inside_word: 'The characters occur inside a longer word or across a word boundary. A short query requires one whole word.',
       short_no_match: 'No whole reference word matches. Fuzzy matching starts at five characters.',
-      fuzzy_pass: percentage + ' similarity meets the 72% threshold.',
-      fuzzy_below: 'Best eligible word window: ' + percentage + '. The threshold is 72%.',
-      fuzzy_length: 'No adjacent word window is close enough in length to reach 72%.',
+      fuzzy_pass: percentage + ' similarity meets the ' + thresholdLabel + ' threshold.',
+      fuzzy_below: 'The closest eligible word sequence scored ' + percentage + ', below the ' + thresholdLabel + ' threshold.',
+      fuzzy_length: 'No adjacent word sequence is close enough in length to reach ' + thresholdLabel + '.',
     };
     revealed = true;
     const label = result.method === 'NO_MATCH' ? 'No field match' : result.method;
@@ -169,8 +174,8 @@
     byId('trace-query').textContent = length ? result.query + ' · ' + length + (length === 1 ? ' character' : ' characters') : '—';
     printReference(result);
     byId('explanation').textContent = reasons[result.reason];
-    byId('score-line').hidden = result.score === null;
-    byId('score-line').style.setProperty('--score', percentage || '0%');
+    scoreLine.hidden = result.score === null;
+    scoreLine.style.setProperty('--score', percentage || '0%');
     byId('guide-live').textContent = label + '. ' + reasons[result.reason];
   }
 
